@@ -1,0 +1,52 @@
+
+
+
+create table public.estimate_items (
+  id uuid not null default gen_random_uuid (),
+  estimate_id uuid not null,
+  description text not null default ''::text,
+  quantity numeric(10, 2) not null default 1,
+  unit_price numeric(10, 2) not null default 0,
+  line_total numeric(10, 2) not null default 0,
+  constraint estimate_items_pkey primary key (id),
+  constraint estimate_items_estimate_id_fkey foreign KEY (estimate_id) references estimates (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists estimate_items_estimate_id_idx on public.estimate_items using btree (estimate_id) TABLESPACE pg_default;
+
+
+create table public.estimates (
+  id uuid not null default gen_random_uuid (),
+  tenant_id uuid not null,
+  customer_id uuid null,
+  status text not null default 'draft'::text,
+  notes text not null default ''::text,
+  total numeric(10, 2) not null default 0,
+  created_at timestamp with time zone not null default now(),
+  customer_name text not null default ''::text,
+  customer_address text not null default ''::text,
+  salesperson text not null default ''::text,
+  job text not null default ''::text,
+  payment_terms text not null default ''::text,
+  due_date text not null default 'TBD'::text,
+  deposit numeric(10, 2) not null default 0,
+  cash_note text not null default ''::text,
+  constraint estimates_pkey primary key (id),
+  constraint estimates_customer_id_fkey foreign KEY (customer_id) references customers (id) on delete set null,
+  constraint estimates_tenant_id_fkey foreign KEY (tenant_id) references tenants (id) on delete CASCADE,
+  constraint estimates_status_check check (
+    (
+      status = any (
+        array[
+          'draft'::text,
+          'sent'::text,
+          'approved'::text,
+          'invoiced'::text
+        ]
+      )
+    )
+  )
+) TABLESPACE pg_default;
+
+create index IF not exists estimates_tenant_id_idx on public.estimates using btree (tenant_id) TABLESPACE pg_default;
+

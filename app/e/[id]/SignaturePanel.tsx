@@ -61,7 +61,12 @@ export function SignaturePanel({ estimateId, tenant }: Props) {
         setError(body.error ?? "Something went wrong. Please try again.");
         return;
       }
-      setDone(true);
+      const data = await res.json();
+      if (data.invoiceId) {
+        window.location.href = `/pay/${data.invoiceId}`;
+      } else {
+        setDone(true);
+      }
     } finally {
       setSubmitting(false);
     }

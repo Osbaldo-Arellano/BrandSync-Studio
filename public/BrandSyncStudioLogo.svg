@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 720 720">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke: url(#linear-gradient);
+      }
+
+      .cls-1, .cls-2 {
+        fill: none;
+        stroke-miterlimit: 4;
+        stroke-width: 28px;
+      }
+
+      .cls-3 {
+        fill: #384152;
+        font-family: Arial-BoldMT, Arial;
+        font-size: 44px;
+        font-weight: 700;
+      }
+
+      .cls-3, .cls-4 {
+        isolation: isolate;
+      }
+
+      .cls-4 {
+        fill: #6b7280;
+        font-family: ArialMT, Arial;
+        font-size: 16px;
+        letter-spacing: .38em;
+      }
+
+      .cls-2 {
+        stroke: url(#linear-gradient-2);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="397.29" y1="1119.14" x2="398.29" y2="1118.14" gradientTransform="translate(-100366.53 -55435.18) rotate(90) scale(140 -90)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2dbec1"/>
+      <stop offset="1" stop-color="#4366b0"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="397.29" y1="1119.14" x2="398.29" y2="1118.14" gradientTransform="translate(-100306.53 -55375.18) rotate(90) scale(140 -90)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6c56a4"/>
+      <stop offset="1" stop-color="#f27085"/>
+    </linearGradient>
+  </defs>
+  <rect class="cls-1" x="266.07" y="185.53" width="90" height="140" rx="40" ry="40" transform="translate(-89.57 294.8) rotate(-45)"/>
+  <rect class="cls-2" x="326.07" y="245.53" width="90" height="140" rx="40" ry="40" transform="translate(-114.43 354.8) rotate(-45)"/>
+  <text class="cls-3" transform="translate(224.93 440.53)"><tspan x="0" y="0">BrandSync</tspan></text>
+  <text class="cls-4" transform="translate(292.85 475.53)"><tspan x="0" y="0">STUDIO</tspan></text>
+</svg>

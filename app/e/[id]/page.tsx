@@ -46,6 +46,7 @@ export default async function PublicEstimatePage({
 
   const estimate: Estimate = {
     id: row.id,
+    estimate_number: row.estimate_number ?? 0,
     customer_id: row.customer_id ?? null,
     customerName: row.customer_name ?? "",
     customerAddress: row.customer_address ?? "",

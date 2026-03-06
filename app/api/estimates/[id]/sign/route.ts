@@ -98,9 +98,43 @@ export async function POST(
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
+  // Auto-create invoice from approved estimate
+  let invoiceId: string | null = null;
+  try {
+    const { data: newInvoice } = await admin
+      .from("invoices")
+      .insert({
+        tenant_id: row.tenant_id,
+        estimate_id: id,
+        customer_name: row.customer_name ?? "",
+        customer_email: row.customer_email ?? null,
+        status: "sent",
+        total: row.total ?? 0,
+        amount_paid: 0,
+      })
+      .select("id")
+      .single();
+
+    if (newInvoice) {
+      invoiceId = newInvoice.id;
+      const invoiceItems = (items ?? []).map((item) => ({
+        invoice_id: newInvoice.id,
+        description: item.description ?? "",
+        quantity: item.quantity ?? 0,
+        unit_price: item.unit_price ?? 0,
+      }));
+      if (invoiceItems.length > 0) {
+        await admin.from("invoice_items").insert(invoiceItems);
+      }
+    }
+  } catch {
+    // Non-fatal: invoice creation failure should not block estimate approval
+  }
+
   // Build Estimate object for PDF
   const estimate: Estimate = {
     id: row.id,
+    estimate_number: row.estimate_number ?? 0,
     customer_id: row.customer_id ?? null,
     customerName: row.customer_name ?? "",
     customerAddress: row.customer_address ?? "",
@@ -166,5 +200,5 @@ export async function POST(
     ],
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, invoiceId });
 }

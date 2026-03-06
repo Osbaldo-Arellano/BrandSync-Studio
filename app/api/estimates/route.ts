@@ -5,6 +5,7 @@ import type { Estimate } from "@/types/estimates";
 function mapRow(row: Record<string, unknown>): Estimate {
   return {
     id: row.id as string,
+    estimate_number: (row.estimate_number as number) ?? 0,
     customer_id: (row.customer_id as string | null) ?? null,
     customerName: (row.customer_name as string) ?? "",
     customerAddress: (row.customer_address as string) ?? "",

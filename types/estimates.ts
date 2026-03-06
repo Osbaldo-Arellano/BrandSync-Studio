@@ -11,6 +11,7 @@ export interface EstimateItem {
 
 export interface Estimate {
   id: string;
+  estimate_number: number;
   customer_id: string | null;
   customerName: string;
   customerAddress: string;

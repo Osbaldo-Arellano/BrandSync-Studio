@@ -27,12 +27,14 @@ const STATUS_STYLES: Record<InvoiceStatus, string> = {
   sent:    "bg-blue-50 text-blue-700 border border-blue-200",
   paid:    "bg-emerald-50 text-emerald-700 border border-emerald-200",
   overdue: "bg-red-50 text-red-700 border border-red-200",
+  partial: "bg-amber-50 text-amber-700 border border-amber-200",
 };
 
 const FILTER_TABS: { label: string; value: InvoiceStatus | "all" }[] = [
   { label: "All",     value: "all" },
   { label: "Draft",   value: "draft" },
   { label: "Sent",    value: "sent" },
+  { label: "Partial", value: "partial" },
   { label: "Paid",    value: "paid" },
   { label: "Overdue", value: "overdue" },
 ];
@@ -43,6 +45,17 @@ function StatusBadge({ status }: { status: InvoiceStatus }) {
       {status}
     </span>
   );
+}
+
+function computeInvoiceStats(invoices: Invoice[]) {
+  const fmt = (n: number) =>
+    n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  return {
+    outstanding: fmt(invoices.filter(i => i.status === "sent").reduce((s, i) => s + i.total, 0)),
+    paid:        fmt(invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0)),
+    overdue:     fmt(invoices.filter(i => i.status === "overdue").reduce((s, i) => s + i.total, 0)),
+    revenue:     fmt(invoices.reduce((s, i) => s + i.total, 0)),
+  };
 }
 
 export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
@@ -87,6 +100,26 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
           </p>
         </div>
       </div>
+
+      {/* Stats bar — desktop only */}
+      {invoices.length > 0 && (() => {
+        const stats = computeInvoiceStats(invoices);
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-5 md:flex md:gap-3">
+            {[
+              { label: "Outstanding",   value: stats.outstanding },
+              { label: "Paid",          value: stats.paid },
+              { label: "Overdue",       value: stats.overdue },
+              { label: "Total Revenue", value: stats.revenue },
+            ].map(({ label, value }) => (
+              <div key={label} className="border border-gray-200 bg-white rounded px-4 py-3 min-w-[120px]">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
+                <p className="text-xl font-bold text-gray-900 mt-0.5">{value}</p>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Search + filter */}
       <div className="mb-5 flex flex-col sm:flex-row gap-3">

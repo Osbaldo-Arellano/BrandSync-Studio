@@ -36,9 +36,49 @@ function StatusBadge({ status }: { status: EstimateStatus }) {
   );
 }
 
+function computeStats(estimates: Estimate[]) {
+  return {
+    drafts:   estimates.filter(e => e.status === "draft").length,
+    sent:     estimates.filter(e => e.status === "sent").length,
+    approved: estimates.filter(e => e.status === "approved").length,
+    invoicedTotal: estimates
+      .filter(e => e.status === "invoiced")
+      .reduce((sum, e) => sum + e.total, 0),
+    pipeline: estimates
+      .filter(e => ["draft", "sent", "approved"].includes(e.status))
+      .reduce((sum, e) => sum + e.total, 0),
+  };
+}
+
+function fmtEstimateId(est: Estimate): string {
+  const year = new Date(est.created_at).getFullYear();
+  const num  = String(est.estimate_number).padStart(3, "0");
+  return `EST-${year}-${num}`;
+}
+
 export function EstimateList({ estimates }: { estimates: Estimate[] }) {
   const [filter, setFilter] = useState<EstimateStatus | "all">("all");
   const [search, setSearch] = useState("");
+  const [converting, setConverting] = useState<Record<string, boolean>>({});
+
+  async function convertToInvoice(estimateId: string) {
+    setConverting(prev => ({ ...prev, [estimateId]: true }));
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estimateId }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        alert(error ?? "Failed to create invoice");
+        return;
+      }
+      window.location.href = "/dashboard/invoices";
+    } finally {
+      setConverting(prev => ({ ...prev, [estimateId]: false }));
+    }
+  }
 
   const visible = estimates.filter((est) => {
     const matchStatus = filter === "all" || est.status === filter;
@@ -67,6 +107,33 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
           + New Estimate
         </Link>
       </div>
+
+      {/* Stats bar — desktop only */}
+      {estimates.length > 0 && (() => {
+        const stats = computeStats(estimates);
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-5 md:flex md:gap-3">
+            {[
+              { label: "Drafts",   value: String(stats.drafts) },
+              { label: "Sent",     value: String(stats.sent) },
+              { label: "Approved", value: String(stats.approved) },
+              {
+                label: "Invoiced",
+                value: stats.invoicedTotal.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }),
+              },
+              {
+                label: "Pipeline",
+                value: stats.pipeline.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }),
+              },
+            ].map(({ label, value }) => (
+              <div key={label} className="border border-gray-200 bg-white rounded px-4 py-3 min-w-[100px]">
+                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{label}</p>
+                <p className="text-xl font-bold text-gray-900 mt-0.5">{value}</p>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Search + filter */}
       {estimates.length > 0 && (
@@ -113,22 +180,27 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left bg-gray-50">
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estimate #</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Job</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Total</th>
-                <th className="px-5 py-3"></th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">Estimate #</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">Customer</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">Job</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">Date</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide text-right">Total</th>
+                <th className="px-5 py-3 text-right"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {visible.map((est) => (
                 <tr key={est.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-4 text-xs text-gray-400 font-mono">{est.id.slice(0, 8).toUpperCase()}</td>
+                  <td className="px-5 py-4 text-xs text-gray-700 font-mono">{fmtEstimateId(est)}</td>
                   <td className="px-5 py-4 text-sm font-medium text-gray-900">{est.customerName}</td>
-                  <td className="px-5 py-4 text-sm text-gray-500 max-w-[160px] truncate">{est.job}</td>
-                  <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">
+                  <td className="px-5 py-4 text-sm text-gray-600 max-w-[160px] truncate">
+                    {est.job
+                      ? est.job
+                      : <span className="text-gray-400 italic">No description</span>
+                    }
+                  </td>
+                  <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">
                     {new Date(est.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-5 py-4">
@@ -138,10 +210,19 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
                     {est.total.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {est.status === "approved" && (
+                        <button
+                          onClick={() => convertToInvoice(est.id)}
+                          disabled={converting[est.id]}
+                          className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors whitespace-nowrap"
+                        >
+                          {converting[est.id] ? "Converting…" : "Convert to Invoice"}
+                        </button>
+                      )}
                       <Link
                         href={`/dashboard/estimates/${est.id}`}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        className="rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                       >
                         View
                       </Link>
@@ -173,9 +254,11 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs text-gray-400 font-mono">{est.id.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-xs text-gray-600 font-mono">{fmtEstimateId(est)}</p>
                   <p className="font-semibold text-gray-900 mt-0.5 truncate">{est.customerName}</p>
-                  {est.job && <p className="text-sm text-gray-500 mt-0.5 truncate">{est.job}</p>}
+                  <p className="text-sm text-gray-500 mt-0.5 truncate">
+                    {est.job || <span className="text-gray-400 italic">No description</span>}
+                  </p>
                 </div>
                 <StatusBadge status={est.status} />
               </div>
@@ -185,6 +268,21 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
                   {est.total.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                 </span>
               </div>
+              {est.status === "approved" && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      convertToInvoice(est.id);
+                    }}
+                    disabled={converting[est.id]}
+                    className="w-full rounded bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {converting[est.id] ? "Converting…" : "Convert to Invoice"}
+                  </button>
+                </div>
+              )}
             </Link>
           ))}
         </div>

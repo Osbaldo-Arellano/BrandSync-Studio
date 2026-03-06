@@ -14,6 +14,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const { id } = await params;
   const { signatureDataUrl, signedByName } = await request.json();
 
@@ -201,4 +202,14 @@ export async function POST(
   });
 
   return NextResponse.json({ ok: true, invoiceId });
+  } catch (error) {
+    console.error("sign route error:", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
 }

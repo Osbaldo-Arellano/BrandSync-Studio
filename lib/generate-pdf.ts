@@ -10,9 +10,26 @@ export async function generatePdf(html: string): Promise<Buffer> {
 
   if (isVercel) {
     const chromium = await import("@sparticuz/chromium");
+    const chromiumInput =
+      process.env.CHROMIUM_PACK_URL ||
+      process.env.CHROMIUM_PACK_PATH ||
+      process.env.CHROMIUM_PACK_DIR;
+
+    let executablePath: string;
+    try {
+      executablePath = chromiumInput
+        ? await chromium.default.executablePath(chromiumInput)
+        : await chromium.default.executablePath();
+    } catch (error) {
+      const hint = chromiumInput
+        ? `Failed to resolve Chromium from CHROMIUM_PACK_* (${chromiumInput}).`
+        : "Chromium binaries not found. Set CHROMIUM_PACK_URL or CHROMIUM_PACK_DIR to a pack containing the .br files.";
+      const message = error instanceof Error ? error.message : "Unknown error";
+      throw new Error(`${hint} ${message}`);
+    }
     browser = await puppeteer.launch({
       args: chromium.default.args,
-      executablePath: await chromium.default.executablePath(),
+      executablePath,
     });
   } else {
     browser = await puppeteer.launch({

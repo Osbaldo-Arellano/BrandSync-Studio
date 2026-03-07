@@ -112,14 +112,35 @@ export async function POST(
     }
   }
 
-  const amountCents = lineItems.reduce(
+  let amountCents = lineItems.reduce(
     (sum, item) =>
       sum + ((item.price_data?.unit_amount as number) ?? 0) * ((item.quantity as number) ?? 1),
     0
   );
 
+  // If itemized total is zero but invoice has a non-zero total, fall back to a single
+  // lump-sum line item. This handles cases where unit_price is 0 on stored items.
   if (amountCents <= 0) {
-    return NextResponse.json({ error: "Nothing to charge" }, { status: 400 });
+    const fallbackCents = Math.round(
+      (type === "deposit" && depositAmount > 0 ? depositAmount : remaining) * 100
+    );
+    if (fallbackCents <= 0) {
+      return NextResponse.json({ error: "Nothing to charge" }, { status: 400 });
+    }
+    amountCents = fallbackCents;
+    lineItems = [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: fallbackCents,
+          product_data: {
+            name: type === "deposit" ? "Deposit" : "Invoice Payment",
+            description: `Invoice for ${invoice.customer_name}`,
+          },
+        },
+      },
+    ];
   }
 
   const session = await stripe.checkout.sessions.create({

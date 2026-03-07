@@ -127,6 +127,8 @@ export async function POST(
       if (invoiceItems.length > 0) {
         await admin.from("invoice_items").insert(invoiceItems);
       }
+      // Mark estimate as invoiced so the dashboard doesn't offer to generate a duplicate
+      await admin.from("estimates").update({ status: "invoiced" }).eq("id", id);
     }
   } catch {
     // Non-fatal: invoice creation failure should not block estimate approval

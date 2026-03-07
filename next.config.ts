@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       "node_modules/@sparticuz/chromium/**",
       "node_modules/@sparticuz/chromium/bin/**",
     ],
+    "/api/invoices/*/pdf": [
+      "node_modules/@sparticuz/chromium/**",
+      "node_modules/@sparticuz/chromium/bin/**",
+    ],
   },
   async redirects() {
     return [

@@ -12,7 +12,7 @@ export async function PATCH(
   const { id } = await params;
   const { status } = await request.json();
 
-  const allowed = ["draft", "sent", "paid", "overdue"];
+  const allowed = ["draft", "sent", "paid", "overdue", "partial", "cash", "deferred"];
   if (!allowed.includes(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }

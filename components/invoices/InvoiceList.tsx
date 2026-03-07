@@ -24,26 +24,40 @@ interface Invoice {
 }
 
 const STATUS_STYLES: Record<InvoiceStatus, string> = {
-  draft:   "bg-gray-100 text-gray-600 border border-gray-200",
-  sent:    "bg-blue-50 text-blue-700 border border-blue-200",
-  paid:    "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  overdue: "bg-red-50 text-red-700 border border-red-200",
-  partial: "bg-amber-50 text-amber-700 border border-amber-200",
+  draft:    "bg-gray-100 text-gray-600 border border-gray-200",
+  sent:     "bg-blue-50 text-blue-700 border border-blue-200",
+  paid:     "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  overdue:  "bg-red-50 text-red-700 border border-red-200",
+  partial:  "bg-amber-50 text-amber-700 border border-amber-200",
+  cash:     "bg-teal-50 text-teal-700 border border-teal-200",
+  deferred: "bg-orange-50 text-orange-700 border border-orange-200",
+};
+
+const STATUS_LABELS: Record<InvoiceStatus, string> = {
+  draft:    "Draft",
+  sent:     "Sent",
+  paid:     "Paid",
+  overdue:  "Overdue",
+  partial:  "Partial",
+  cash:     "Cash",
+  deferred: "Pay Later",
 };
 
 const FILTER_TABS: { label: string; value: InvoiceStatus | "all" }[] = [
-  { label: "All",     value: "all" },
-  { label: "Draft",   value: "draft" },
-  { label: "Sent",    value: "sent" },
-  { label: "Partial", value: "partial" },
-  { label: "Paid",    value: "paid" },
-  { label: "Overdue", value: "overdue" },
+  { label: "All",       value: "all" },
+  { label: "Draft",     value: "draft" },
+  { label: "Sent",      value: "sent" },
+  { label: "Partial",   value: "partial" },
+  { label: "Cash",      value: "cash" },
+  { label: "Pay Later", value: "deferred" },
+  { label: "Paid",      value: "paid" },
+  { label: "Overdue",   value: "overdue" },
 ];
 
 function StatusBadge({ status }: { status: InvoiceStatus }) {
   return (
-    <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[status]}`}>
-      {status}
+    <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[status]}`}>
+      {STATUS_LABELS[status]}
     </span>
   );
 }
@@ -243,7 +257,7 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                     {inv.total.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                   </td>
                   <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       {inv.status === "draft" && (
                         <button
                           onClick={() => updateStatus(inv.id, "sent")}
@@ -253,7 +267,7 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                           Mark Sent
                         </button>
                       )}
-                      {inv.status === "sent" && (
+                      {(inv.status === "sent" || inv.status === "cash" || inv.status === "deferred" || inv.status === "partial") && (
                         <button
                           onClick={() => updateStatus(inv.id, "paid")}
                           disabled={updating === inv.id}
@@ -262,9 +276,28 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                           Mark Paid
                         </button>
                       )}
+                      {(inv.status === "sent" || inv.status === "deferred") && (
+                        <button
+                          onClick={() => updateStatus(inv.id, "overdue")}
+                          disabled={updating === inv.id}
+                          className="rounded border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
+                        >
+                          Overdue
+                        </button>
+                      )}
                       {inv.status === "paid" && (
                         <span className="text-xs text-emerald-600 font-medium">Paid ✓</span>
                       )}
+                      <a
+                        href={`/api/invoices/${inv.id}/pdf`}
+                        download
+                        title="Download PDF"
+                        className="ml-auto text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </a>
                     </div>
                   </td>
                 </tr>
@@ -339,7 +372,7 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                 <StatusBadge status={inv.status} />
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   {inv.status === "draft" && (
                     <button
                       onClick={() => updateStatus(inv.id, "sent")}
@@ -349,7 +382,7 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                       Mark Sent
                     </button>
                   )}
-                  {inv.status === "sent" && (
+                  {(inv.status === "sent" || inv.status === "cash" || inv.status === "deferred" || inv.status === "partial") && (
                     <button
                       onClick={() => updateStatus(inv.id, "paid")}
                       disabled={updating === inv.id}
@@ -358,9 +391,28 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                       Mark Paid
                     </button>
                   )}
+                  {(inv.status === "sent" || inv.status === "deferred") && (
+                    <button
+                      onClick={() => updateStatus(inv.id, "overdue")}
+                      disabled={updating === inv.id}
+                      className="rounded border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      Overdue
+                    </button>
+                  )}
                   {inv.status === "paid" && (
                     <span className="text-xs text-emerald-600 font-medium">Paid ✓</span>
                   )}
+                  <a
+                    href={`/api/invoices/${inv.id}/pdf`}
+                    download
+                    title="Download PDF"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </a>
                 </div>
                 <span className="font-semibold text-gray-900">
                   {inv.total.toLocaleString("en-US", { style: "currency", currency: "USD" })}

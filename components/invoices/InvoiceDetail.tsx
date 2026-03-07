@@ -27,11 +27,23 @@ interface InvoiceDetailData {
 }
 
 const STATUS_BADGE: Record<InvoiceStatus, string> = {
-  draft:   "bg-gray-100 text-gray-600 border border-gray-200",
-  sent:    "bg-blue-50 text-blue-700 border border-blue-200",
-  paid:    "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  overdue: "bg-red-50 text-red-700 border border-red-200",
-  partial: "bg-amber-50 text-amber-700 border border-amber-200",
+  draft:    "bg-gray-100 text-gray-600 border border-gray-200",
+  sent:     "bg-blue-50 text-blue-700 border border-blue-200",
+  paid:     "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  overdue:  "bg-red-50 text-red-700 border border-red-200",
+  partial:  "bg-amber-50 text-amber-700 border border-amber-200",
+  cash:     "bg-teal-50 text-teal-700 border border-teal-200",
+  deferred: "bg-orange-50 text-orange-700 border border-orange-200",
+};
+
+const STATUS_LABELS: Record<InvoiceStatus, string> = {
+  draft:    "Draft",
+  sent:     "Sent",
+  paid:     "Paid",
+  overdue:  "Overdue",
+  partial:  "Partial",
+  cash:     "Cash",
+  deferred: "Pay Later",
 };
 
 export function InvoiceDetail({
@@ -103,8 +115,8 @@ export function InvoiceDetail({
               <p className="text-2xl font-bold text-gray-900">INVOICE</p>
               <p className="text-sm text-gray-500 font-mono mt-1">{invoiceNum}</p>
               <p className="text-sm text-gray-500 mt-1">{createdDate}</p>
-              <span className={`inline-flex mt-2 rounded px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_BADGE[status]}`}>
-                {status}
+              <span className={`inline-flex mt-2 rounded px-2.5 py-0.5 text-xs font-semibold ${STATUS_BADGE[status]}`}>
+                {STATUS_LABELS[status]}
               </span>
             </div>
           </div>
@@ -176,6 +188,17 @@ export function InvoiceDetail({
 
       {/* Action panel */}
       <div className="mt-4 bg-white border border-gray-200 rounded p-4 flex flex-wrap items-center gap-3">
+        <a
+          href={`/api/invoices/${invoice.id}/pdf`}
+          download
+          className="rounded border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors inline-flex items-center gap-1.5"
+        >
+          <svg className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download PDF
+        </a>
+        <div className="w-px h-5 bg-gray-200" />
         {status === "draft" && (
           <button
             onClick={() => updateStatus("sent")}
@@ -185,25 +208,7 @@ export function InvoiceDetail({
             Mark as Sent
           </button>
         )}
-        {status === "sent" && (
-          <>
-            <button
-              onClick={() => updateStatus("paid")}
-              disabled={updating}
-              className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
-            >
-              Mark as Paid
-            </button>
-            <button
-              onClick={() => updateStatus("overdue")}
-              disabled={updating}
-              className="rounded border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
-            >
-              Mark as Overdue
-            </button>
-          </>
-        )}
-        {status === "overdue" && (
+        {(status === "sent" || status === "cash" || status === "deferred" || status === "partial" || status === "overdue") && (
           <button
             onClick={() => updateStatus("paid")}
             disabled={updating}
@@ -211,6 +216,21 @@ export function InvoiceDetail({
           >
             Mark as Paid
           </button>
+        )}
+        {(status === "sent" || status === "deferred") && (
+          <button
+            onClick={() => updateStatus("overdue")}
+            disabled={updating}
+            className="rounded border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
+          >
+            Mark as Overdue
+          </button>
+        )}
+        {status === "cash" && (
+          <span className="text-sm text-teal-700 font-medium">Customer paying in cash</span>
+        )}
+        {status === "deferred" && (
+          <span className="text-sm text-orange-700 font-medium">Customer requested to pay later</span>
         )}
         {status === "paid" && (
           <span className="text-sm text-emerald-600 font-medium">Paid ✓</span>

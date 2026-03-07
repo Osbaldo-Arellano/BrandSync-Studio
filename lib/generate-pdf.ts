@@ -10,6 +10,13 @@ export async function generatePdf(html: string): Promise<Buffer> {
 
   if (isVercel) {
     const chromium = await import("@sparticuz/chromium");
+
+    // Explicit env var wins. Fallback to the GitHub release pack for the
+    // installed version — required when outputFileTracingIncludes fails to
+    // bundle the bin/ dir for dynamic routes (e.g. /api/estimates/[id]/sign).
+    const PACK_FALLBACK =
+      "https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.x64.tar";
+
     const chromiumInput =
       process.env.CHROMIUM_PACK_URL ||
       process.env.CHROMIUM_PACK_PATH ||
@@ -20,13 +27,12 @@ export async function generatePdf(html: string): Promise<Buffer> {
       executablePath = chromiumInput
         ? await chromium.default.executablePath(chromiumInput)
         : await chromium.default.executablePath();
-    } catch (error) {
-      const hint = chromiumInput
-        ? `Failed to resolve Chromium from CHROMIUM_PACK_* (${chromiumInput}).`
-        : "Chromium binaries not found. Set CHROMIUM_PACK_URL or CHROMIUM_PACK_DIR to a pack containing the .br files.";
-      const message = error instanceof Error ? error.message : "Unknown error";
-      throw new Error(`${hint} ${message}`);
+    } catch {
+      // Local bin dir not bundled (dynamic route tracing gap on Vercel).
+      // Download + decompress to /tmp at runtime instead.
+      executablePath = await chromium.default.executablePath(PACK_FALLBACK);
     }
+
     browser = await puppeteer.launch({
       args: chromium.default.args,
       executablePath,

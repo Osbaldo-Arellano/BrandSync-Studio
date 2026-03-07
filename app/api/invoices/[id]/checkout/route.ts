@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { type } = await request.json() as { type: "deposit" | "full" };
+  const { type } = (await request.json()) as { type: "deposit" | "full" };
 
   if (!["deposit", "full"].includes(type)) {
     return NextResponse.json({ error: "Invalid payment type" }, { status: 400 });
@@ -35,43 +35,96 @@ export async function POST(
   }
 
   const total = invoice.total as number;
-  const amountPaid = invoice.amount_paid as number;
+  const amountPaid = (invoice.amount_paid as number) ?? 0;
   const remaining = total - amountPaid;
 
-  let amountCents: number;
-  let label: string;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+  let lineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
 
   if (type === "deposit" && depositAmount > 0 && amountPaid === 0) {
-    amountCents = Math.round(depositAmount * 100);
-    label = "Deposit";
+    // Single deposit line item
+    lineItems = [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.round(depositAmount * 100),
+          product_data: {
+            name: "Deposit",
+            description: `Invoice for ${invoice.customer_name}`,
+          },
+        },
+      },
+    ];
+  } else if (invoice.status === "partial") {
+    // Deposit already paid — charge remaining balance as single item
+    lineItems = [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.round(remaining * 100),
+          product_data: {
+            name: "Remaining Balance",
+            description: `Invoice for ${invoice.customer_name}`,
+          },
+        },
+      },
+    ];
   } else {
-    amountCents = Math.round(remaining * 100);
-    label = "Invoice Payment";
+    // Full payment — use actual invoice line items
+    const { data: items } = await admin
+      .from("invoice_items")
+      .select("description, quantity, unit_price")
+      .eq("invoice_id", id);
+
+    if (items && items.length > 0) {
+      // Use line total as unit_amount (quantity=1) to handle fractional quantities
+      lineItems = items.map((item) => ({
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.round(
+            (item.quantity as number) * (item.unit_price as number) * 100
+          ),
+          product_data: {
+            name: item.description || "Service",
+          },
+        },
+      }));
+    } else {
+      // Fallback: single line item for the full amount
+      lineItems = [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: Math.round(remaining * 100),
+            product_data: {
+              name: "Invoice Payment",
+              description: `Invoice for ${invoice.customer_name}`,
+            },
+          },
+        },
+      ];
+    }
   }
+
+  const amountCents = lineItems.reduce(
+    (sum, item) =>
+      sum + ((item.price_data?.unit_amount as number) ?? 0) * ((item.quantity as number) ?? 1),
+    0
+  );
 
   if (amountCents <= 0) {
     return NextResponse.json({ error: "Nothing to charge" }, { status: 400 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: amountCents,
-          product_data: {
-            name: label,
-            description: `Invoice for ${invoice.customer_name}`,
-          },
-        },
-      },
-    ],
+    line_items: lineItems,
     metadata: {
       invoiceId: id,
       paymentType: type,

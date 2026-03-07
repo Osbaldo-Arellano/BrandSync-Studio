@@ -11,11 +11,10 @@ const nextConfig: NextConfig = {
       "node_modules/@sparticuz/chromium/**",
       "node_modules/@sparticuz/chromium/bin/**",
     ],
-    "/api/estimates/[id]/sign": [
-      "node_modules/@sparticuz/chromium/**",
-      "node_modules/@sparticuz/chromium/bin/**",
-    ],
-    "/api/estimates/[id]/sign/route": [
+    // [id] bracket syntax is not expanded by Next.js file tracing — use * glob.
+    // The runtime fallback in generate-pdf.ts downloads the pack if bin/ is
+    // still missing, so this is a belt-and-suspenders inclusion.
+    "/api/estimates/*/sign": [
       "node_modules/@sparticuz/chromium/**",
       "node_modules/@sparticuz/chromium/bin/**",
     ],

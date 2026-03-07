@@ -69,7 +69,7 @@ export async function GET(
 
   const filename = `invoice-${row.id.slice(0, 8)}.pdf`;
 
-  return new Response(pdfBuffer, {
+  return new Response(pdfBuffer.buffer as ArrayBuffer, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,

@@ -25,11 +25,13 @@ const STATUS_BADGE: Record<EstimateStatus, string> = {
 };
 
 const INV_STATUS_BADGE: Record<InvoiceStatus, string> = {
-  draft:   "bg-gray-100 text-gray-600 border border-gray-200",
-  sent:    "bg-blue-50 text-blue-700 border border-blue-200",
-  paid:    "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  overdue: "bg-red-50 text-red-700 border border-red-200",
-  partial: "bg-amber-50 text-amber-700 border border-amber-200",
+  draft:    "bg-gray-100 text-gray-600 border border-gray-200",
+  sent:     "bg-blue-50 text-blue-700 border border-blue-200",
+  paid:     "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  overdue:  "bg-red-50 text-red-700 border border-red-200",
+  partial:  "bg-amber-50 text-amber-700 border border-amber-200",
+  cash:     "bg-teal-50 text-teal-700 border border-teal-200",
+  deferred: "bg-orange-50 text-orange-700 border border-orange-200",
 };
 
 export function EstimateDetail({ estimate, tenant, existingInvoice }: Props) {

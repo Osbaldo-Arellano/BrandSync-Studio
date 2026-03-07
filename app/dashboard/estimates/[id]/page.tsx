@@ -26,9 +26,10 @@ export default async function EstimateDetailPage({
 
   if (!row) notFound();
 
-  const [{ data: tenant }, { data: brand }] = await Promise.all([
+  const [{ data: tenant }, { data: brand }, { data: linkedInvoice }] = await Promise.all([
     supabase.from("tenants").select(TENANT_FIELDS).eq("id", user.id).single(),
     supabase.from("brands").select("logo_url, icon_url").eq("user_id", user.id).single(),
+    supabase.from("invoices").select("id, status").eq("estimate_id", id).eq("tenant_id", user.id).maybeSingle(),
   ]);
   const tenantProfile: TenantProfile = {
     name: tenant?.name ?? "",
@@ -78,5 +79,9 @@ export default async function EstimateDetailPage({
     })),
   };
 
-  return <EstimateDetail estimate={estimate} tenant={tenantProfile} />;
+  const existingInvoice = linkedInvoice
+    ? { id: linkedInvoice.id as string, status: linkedInvoice.status as string }
+    : null;
+
+  return <EstimateDetail estimate={estimate} tenant={tenantProfile} existingInvoice={existingInvoice} />;
 }

@@ -11,6 +11,7 @@ import { formatTenantAddress } from "@/types/tenant";
 interface Props {
   estimate: Estimate;
   tenant: TenantProfile;
+  existingInvoice?: { id: string; status: string } | null;
 }
 
 const ESTIMATE_STATUS_STEPS: EstimateStatus[] = ["draft", "sent", "approved", "invoiced"];
@@ -31,14 +32,14 @@ const INV_STATUS_BADGE: Record<InvoiceStatus, string> = {
   partial: "bg-amber-50 text-amber-700 border border-amber-200",
 };
 
-export function EstimateDetail({ estimate, tenant }: Props) {
+export function EstimateDetail({ estimate, tenant, existingInvoice }: Props) {
   const { street, cityLine, ccbLine } = formatTenantAddress(tenant);
   const addrSubtitle = [street, cityLine].filter(Boolean).join(", ");
   const logoUrl = tenant.logo_url ?? null;
   const router = useRouter();
   const [status, setStatus] = useState<EstimateStatus>(estimate.status);
-  const [invoiceId, setInvoiceId] = useState<string | null>(null);
-  const [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus>("draft");
+  const [invoiceId, setInvoiceId] = useState<string | null>(existingInvoice?.id ?? null);
+  const [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus>((existingInvoice?.status as InvoiceStatus) ?? "draft");
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);

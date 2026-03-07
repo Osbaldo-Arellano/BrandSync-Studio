@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { Estimate, EstimateStatus } from "@/types/estimates";
 
@@ -26,6 +27,7 @@ const FILTER_TABS: { label: string; value: EstimateStatus | "all" }[] = [
   { label: "Sent",     value: "sent" },
   { label: "Approved", value: "approved" },
   { label: "Invoiced", value: "invoiced" },
+  { label: "Declined", value: "declined" },
 ];
 
 function StatusBadge({ status }: { status: EstimateStatus }) {
@@ -56,10 +58,41 @@ function fmtEstimateId(est: Estimate): string {
   return `EST-${year}-${num}`;
 }
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
+
 export function EstimateList({ estimates }: { estimates: Estimate[] }) {
-  const [filter, setFilter] = useState<EstimateStatus | "all">("all");
+  const searchParams = useSearchParams();
+  const initialFilter = (searchParams.get("status") as EstimateStatus | null) ?? "all";
+  const [filter, setFilter] = useState<EstimateStatus | "all">(initialFilter);
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<Record<string, boolean>>({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const router = useRouter();
+
+  const statusCounts = FILTER_TABS.reduce<Record<string, number>>((acc, tab) => {
+    acc[tab.value] = tab.value === "all"
+      ? estimates.length
+      : estimates.filter(e => e.status === tab.value).length;
+    return acc;
+  }, {});
+
+  const [tableHeight, setTableHeight] = useState(560);
+
+  function startHeightResize(e: React.MouseEvent) {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = tableHeight;
+    const onMove = (ev: MouseEvent) => {
+      setTableHeight(Math.max(120, startH + ev.clientY - startY));
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
 
   async function convertToInvoice(estimateId: string) {
     setConverting(prev => ({ ...prev, [estimateId]: true }));
@@ -89,6 +122,10 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
       est.job.toLowerCase().includes(q);
     return matchStatus && matchSearch;
   });
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginated = visible.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div className="p-6 sm:p-8">
@@ -141,22 +178,22 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
           <input
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search by customer or job…"
             className="w-full sm:w-64 rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
           />
-          <div className="flex gap-1 p-1 rounded bg-gray-100 border border-gray-200 self-start flex-wrap">
+          <div className="flex gap-1.5 flex-wrap self-start">
             {FILTER_TABS.map((tab) => (
               <button
                 key={tab.value}
-                onClick={() => setFilter(tab.value)}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
+                onClick={() => { setFilter(tab.value); setPage(1); }}
+                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap border ${
                   filter === tab.value
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-blue-50 text-blue-700 border-blue-200 font-semibold"
+                    : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                {tab.label}
+                {tab.label} ({statusCounts[tab.value]})
               </button>
             ))}
           </div>
@@ -176,10 +213,11 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
 
       {/* Desktop table */}
       {visible.length > 0 && (
-        <div className="hidden md:block border border-gray-200 bg-white overflow-hidden rounded">
+        <div className="hidden md:block relative">
+        <div className="border border-gray-200 bg-white overflow-y-auto rounded" style={{ maxHeight: tableHeight }}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left bg-gray-50">
+              <tr className="border-b border-gray-200 text-left bg-gray-50 sticky top-0 z-10">
                 <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">Estimate #</th>
                 <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">Customer</th>
                 <th className="px-5 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide">Job</th>
@@ -190,8 +228,12 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {visible.map((est) => (
-                <tr key={est.id} className="hover:bg-gray-50 transition-colors">
+              {paginated.map((est) => (
+                <tr
+                  key={est.id}
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => router.push(`/dashboard/estimates/${est.id}`)}
+                >
                   <td className="px-5 py-4 text-xs text-gray-700 font-mono">{fmtEstimateId(est)}</td>
                   <td className="px-5 py-4 text-sm font-medium text-gray-900">{est.customerName}</td>
                   <td className="px-5 py-4 text-sm text-gray-600 max-w-[160px] truncate">
@@ -209,7 +251,7 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
                   <td className="px-5 py-4 text-right text-sm font-medium text-gray-900 whitespace-nowrap">
                     {est.total.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-2">
                       {est.status === "approved" && (
                         <button
@@ -241,12 +283,63 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
             </tbody>
           </table>
         </div>
+        <div
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-s-resize flex items-end justify-end pb-0.5 pr-0.5 text-gray-300 hover:text-gray-500 select-none"
+          onMouseDown={startHeightResize}
+        >
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+            <rect x="5" y="0" width="1.5" height="1.5" rx="0.5" />
+            <rect x="5" y="3" width="1.5" height="1.5" rx="0.5" />
+            <rect x="2" y="3" width="1.5" height="1.5" rx="0.5" />
+            <rect x="5" y="6" width="1.5" height="1.5" rx="0.5" />
+            <rect x="2" y="6" width="1.5" height="1.5" rx="0.5" />
+            <rect x="0" y="6" width="1.5" height="1.5" rx="0.5" />
+          </svg>
+        </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {visible.length > 0 && (
+        <div className="mt-6 pb-2 grid grid-cols-3 items-center text-sm text-gray-600">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+          </div>
+          <div className="text-center text-xs text-gray-500">
+            {visible.length === 0 ? "0" : `${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, visible.length)}`} of {visible.length}
+          </div>
+          <div className="flex justify-end gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              className="rounded border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+            >
+              ‹ Prev
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage === totalPages}
+              className="rounded border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+            >
+              Next ›
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Mobile cards */}
       {visible.length > 0 && (
         <div className="md:hidden space-y-2">
-          {visible.map((est) => (
+          {paginated.map((est) => (
             <Link
               key={est.id}
               href={`/dashboard/estimates/${est.id}`}

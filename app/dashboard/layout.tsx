@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard";
 
 const navLinks = [
+  { href: "/dashboard",           label: "Dashboard",   exact: true },
   { href: "/dashboard/estimates", label: "Estimates" },
   { href: "/dashboard/invoices",  label: "Invoices" },
   { href: "/dashboard/print",     label: "Order Prints" },
@@ -41,7 +42,7 @@ export default function DashboardLayout({
         `}
       >
         <div className="flex h-14 items-center justify-between px-5 border-b border-gray-200 shrink-0">
-          <span className="text-sm font-bold text-gray-900 tracking-tight">BrandSync</span>
+          <img src="/BrandSyncStudioLogo.svg" alt="BrandSync Studio" className="h-8 w-auto" />
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
@@ -54,7 +55,7 @@ export default function DashboardLayout({
         </div>
         <nav className="p-2 space-y-0.5 flex-1 overflow-y-auto pt-3">
           {navLinks.map((link) => {
-            const active = pathname.startsWith(link.href);
+            const active = link.exact ? pathname === link.href : pathname.startsWith(link.href);
             return (
               <Link
                 key={link.href}

@@ -530,23 +530,22 @@ export function EstimateDetail({ estimate, tenant, existingInvoice }: Props) {
         <div className="rounded border border-gray-200 bg-white px-5 py-4 space-y-3">
           {/* Deliver prompt */}
           {showDeliverPrompt && (
-            <div className="flex items-center gap-3 rounded border border-amber-200 bg-amber-50 px-4 py-3">
-              <svg className="h-4 w-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 17l-5-5-5 5M12 12V4" />
-              </svg>
-              <p className="text-sm text-amber-800 flex-1">PDF downloaded. Did you physically deliver this estimate?</p>
-              <button
-                onClick={handleMarkDelivered}
-                className="rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors whitespace-nowrap"
-              >
-                Yes, mark as delivered
-              </button>
-              <button
-                onClick={() => setShowDeliverPrompt(false)}
-                className="text-xs text-amber-600 hover:text-amber-800 whitespace-nowrap"
-              >
-                Not yet
-              </button>
+            <div className="flex flex-wrap items-center gap-2 rounded border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm text-amber-800 flex-1 min-w-0">PDF downloaded. Did you physically deliver this estimate?</p>
+              <div className="flex gap-2 items-center shrink-0">
+                <button
+                  onClick={handleMarkDelivered}
+                  className="rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors whitespace-nowrap"
+                >
+                  Yes, delivered
+                </button>
+                <button
+                  onClick={() => setShowDeliverPrompt(false)}
+                  className="text-xs text-amber-600 hover:text-amber-800 whitespace-nowrap"
+                >
+                  Not yet
+                </button>
+              </div>
             </div>
           )}
 

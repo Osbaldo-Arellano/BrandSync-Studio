@@ -210,7 +210,7 @@ export function DashboardHome({
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">{today}</p>
         </div>
-        <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+        <div className="flex gap-2 flex-wrap justify-end sm:justify-end">
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
@@ -409,8 +409,8 @@ export function DashboardHome({
               <p className="text-xs text-gray-400 mt-1">Convert an approved estimate to generate one.</p>
             </div>
           ) : (
-            <div className="bg-white border border-gray-200 rounded overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-white border border-gray-200 rounded overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm min-w-[320px]">
                 <tbody className="divide-y divide-gray-100">
                   {recentInvoices.map((inv) => (
                     <tr
@@ -457,8 +457,8 @@ export function DashboardHome({
               </Link>
             </div>
           ) : (
-            <div className="bg-white border border-gray-200 rounded overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-white border border-gray-200 rounded overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm min-w-[280px]">
                 <tbody className="divide-y divide-gray-100">
                   {recentJobs.map((job) => (
                     <tr

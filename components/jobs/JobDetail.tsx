@@ -294,16 +294,16 @@ export function JobDetail({ job: initial, customers }: { job: Job; customers: Cu
           {job.estimates.length === 0 ? (
             <p className="px-5 py-8 text-sm text-gray-400 text-center">No estimates yet</p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 overflow-x-auto">
               {job.estimates.map(est => (
-                <div key={est.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
+                <div key={est.id} className="flex items-center justify-between px-3 sm:px-5 py-3 hover:bg-gray-50 transition-colors min-w-0">
+                  <div className="min-w-0 mr-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">
                       EST-{new Date(est.created_at).getFullYear()}-{String(est.estimate_number).padStart(3, "0")}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">{new Date(est.created_at).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 shrink-0">
                     <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium capitalize ${EST_STATUS[est.status] ?? "bg-gray-100 text-gray-600"}`}>{est.status}</span>
                     <span className="text-sm font-medium text-gray-900 tabular-nums">{usd(est.total)}</span>
                     <Link href={`/dashboard/estimates/${est.id}`} className="text-xs text-blue-600 hover:text-blue-700 font-medium">View</Link>
@@ -313,7 +313,7 @@ export function JobDetail({ job: initial, customers }: { job: Job; customers: Cu
                         disabled={deletingEstimate === est.id}
                         className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50"
                       >
-                        {deletingEstimate === est.id ? "…" : "Delete"}
+                        {deletingEstimate === est.id ? "…" : "Del"}
                       </button>
                     )}
                   </div>
@@ -337,16 +337,16 @@ export function JobDetail({ job: initial, customers }: { job: Job; customers: Cu
           {job.invoices.length === 0 ? (
             <p className="px-5 py-8 text-sm text-gray-400 text-center">No invoices yet</p>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 overflow-x-auto">
               {job.invoices.map(inv => (
-                <div key={inv.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
+                <div key={inv.id} className="flex items-center justify-between px-3 sm:px-5 py-3 hover:bg-gray-50 transition-colors min-w-0">
+                  <div className="min-w-0 mr-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">
                       {inv.invoice_number ? `INV-${String(inv.invoice_number).padStart(4, "0")}` : `INV-${inv.id.slice(0,8).toUpperCase()}`}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">{new Date(inv.created_at).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 shrink-0">
                     <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium capitalize ${INV_STATUS[inv.status] ?? "bg-gray-100 text-gray-600"}`}>{inv.status}</span>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900 tabular-nums">{usd(inv.total)}</p>

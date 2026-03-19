@@ -250,7 +250,7 @@ export function InvoiceDetail({
       <div className="bg-white border border-gray-200 rounded overflow-hidden">
 
         {/* Company header */}
-        <div className="px-8 pt-8 pb-6 border-b border-gray-100">
+        <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-4 sm:pb-6 border-b border-gray-100">
           <div className="flex items-start justify-between gap-4">
             <div>
               {tenant.logo_url && (
@@ -283,7 +283,7 @@ export function InvoiceDetail({
         </div>
 
         {/* Bill to */}
-        <div className="px-8 py-5 border-b border-gray-100 bg-gray-50">
+        <div className="px-4 sm:px-8 py-3 sm:py-5 border-b border-gray-100 bg-gray-50">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Bill To</p>
           <p className="text-sm font-semibold text-gray-900">{invoice.customer_name || "—"}</p>
           {invoice.customer_address && (
@@ -300,9 +300,10 @@ export function InvoiceDetail({
         </div>
 
         {/* Line items */}
-        <div className="px-8 py-6">
+        <div className="px-4 sm:px-8 py-4 sm:py-6">
           {invoice.items.length > 0 ? (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-sm min-w-[400px]">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="pb-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
@@ -326,13 +327,14 @@ export function InvoiceDetail({
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <p className="text-sm text-gray-400 italic">No line items.</p>
           )}
 
           {/* Totals */}
-          <div className="mt-6 flex justify-end">
-            <div className="w-56 space-y-1.5">
+          <div className="mt-4 sm:mt-6 flex justify-end">
+            <div className="w-full sm:w-56 space-y-1.5">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Subtotal</span>
                 <span>{subtotal.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>
@@ -371,7 +373,7 @@ export function InvoiceDetail({
 
         {/* Notes */}
         {invoice.notes && (
-          <div className="px-8 pb-6">
+          <div className="px-4 sm:px-8 pb-4 sm:pb-6">
             <div className="rounded border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Notes</p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{invoice.notes}</p>
@@ -382,23 +384,22 @@ export function InvoiceDetail({
 
       {/* Deliver prompt (shown after PDF download) */}
       {showDeliverPrompt && (
-        <div className="mt-4 flex items-center gap-3 rounded border border-amber-200 bg-amber-50 px-4 py-3">
-          <svg className="h-4 w-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 17l-5-5-5 5M12 12V4" />
-          </svg>
-          <p className="text-sm text-amber-800 flex-1">PDF downloaded. Did you physically deliver this invoice?</p>
-          <button
-            onClick={handleMarkDelivered}
-            className="rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors whitespace-nowrap"
-          >
-            Yes, mark as delivered
-          </button>
-          <button
-            onClick={() => setShowDeliverPrompt(false)}
-            className="text-xs text-amber-600 hover:text-amber-800 whitespace-nowrap"
-          >
-            Not yet
-          </button>
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-800 flex-1 min-w-0">PDF downloaded. Did you physically deliver this invoice?</p>
+          <div className="flex gap-2 items-center shrink-0">
+            <button
+              onClick={handleMarkDelivered}
+              className="rounded bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors whitespace-nowrap"
+            >
+              Yes, delivered
+            </button>
+            <button
+              onClick={() => setShowDeliverPrompt(false)}
+              className="text-xs text-amber-600 hover:text-amber-800 whitespace-nowrap"
+            >
+              Not yet
+            </button>
+          </div>
         </div>
       )}
 

@@ -3,11 +3,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 
 // Public endpoint — no session required.
 // Allows a customer on /pay/[id] to record their payment preference.
-// Only "cash" and "deferred" are accepted, and only from a payable status.
+// Only "cash", "cashapp", and "deferred" are accepted, and only from a payable status.
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  sent:    ["cash", "deferred"],
-  partial: ["cash", "deferred"],
+  sent:    ["cash", "cashapp", "deferred"],
+  partial: ["cash", "cashapp", "deferred"],
 };
 
 export async function PATCH(
@@ -17,7 +17,7 @@ export async function PATCH(
   const { id } = await params;
   const { status: next } = (await request.json()) as { status: string };
 
-  if (!["cash", "deferred"].includes(next)) {
+  if (!["cash", "cashapp", "deferred"].includes(next)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 

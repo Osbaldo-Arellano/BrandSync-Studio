@@ -72,7 +72,8 @@ export function TenantSettingsForm({ initial }: Props) {
           address_street: form.address_street || null,
           address_city: form.address_city || null,
           address_state: form.address_state || null,
-          address_zip: form.address_zip || null,
+          address_zip:  form.address_zip  || null,
+          cashapp_tag:  form.cashapp_tag  || null,
         }),
       });
       if (!res.ok) {
@@ -188,6 +189,24 @@ export function TenantSettingsForm({ initial }: Props) {
           />
         </div>
       </Row>
+      {/* Payments */}
+      <SectionLabel>Payments</SectionLabel>
+      <Row
+        label="Cash App $tag"
+        hint="Your $cashtag — customers will see a QR code to pay you directly via Cash App."
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-500">$</span>
+          <input
+            type="text"
+            value={form.cashapp_tag ?? ""}
+            onChange={(e) => set("cashapp_tag", e.target.value.replace(/^\$/, ""))}
+            placeholder="yourtag"
+            className={inp}
+          />
+        </div>
+      </Row>
+
       {/* Footer */}
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
       <div className="mt-8 flex items-center justify-end gap-4">

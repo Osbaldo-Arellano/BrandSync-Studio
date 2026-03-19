@@ -1,7 +1,27 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+type Period = "7d" | "30d" | "90d" | "ytd" | "all";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  "7d":  "Last 7 days",
+  "30d": "Last 30 days",
+  "90d": "Last 90 days",
+  "ytd": "Year to date",
+  "all": "All time",
+};
+
+function cutoffForPeriod(period: Period): number | null {
+  const now = Date.now();
+  if (period === "7d")  return now - 7  * 24 * 60 * 60 * 1000;
+  if (period === "30d") return now - 30 * 24 * 60 * 60 * 1000;
+  if (period === "90d") return now - 90 * 24 * 60 * 60 * 1000;
+  if (period === "ytd") return new Date(new Date().getFullYear(), 0, 1).getTime();
+  return null;
+}
 
 type EstimateSummary = {
   id: string;
@@ -17,6 +37,13 @@ type InvoiceSummary = {
   customer_name: string;
   status: string;
   total: number;
+  created_at: string;
+};
+
+type JobSummary = {
+  id: string;
+  title: string;
+  status: string;
   created_at: string;
 };
 
@@ -42,6 +69,12 @@ const INV_BADGE: Record<string, string> = {
   paid:    "bg-emerald-50 text-emerald-700 border border-emerald-200",
   overdue: "bg-red-50 text-red-700 border border-red-200",
   partial: "bg-amber-50 text-amber-700 border border-amber-200",
+};
+
+const JOB_BADGE: Record<string, string> = {
+  active:    "bg-blue-50 text-blue-700 border border-blue-200",
+  completed: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  cancelled: "bg-gray-100 text-gray-600 border border-gray-200",
 };
 
 function KpiCard({
@@ -97,50 +130,67 @@ function StatusBar({
 export function DashboardHome({
   estimates,
   invoices,
+  jobs,
   tenantName,
 }: {
   estimates: EstimateSummary[];
   invoices: InvoiceSummary[];
+  jobs: JobSummary[];
   tenantName: string;
 }) {
   const router = useRouter();
+  const [period, setPeriod] = useState<Period>("all");
 
-  // KPIs
-  const revenue     = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0);
-  const outstanding = invoices.filter(i => i.status === "sent").reduce((s, i) => s + i.total, 0);
-  const overdue     = invoices.filter(i => i.status === "overdue").reduce((s, i) => s + i.total, 0);
-  const pipeline    = estimates.filter(e => ["draft","sent","approved"].includes(e.status)).reduce((s, e) => s + e.total, 0);
+  // Period-filtered slices (for KPIs + recent tables)
+  const cutoff = cutoffForPeriod(period);
+  const filteredEstimates = cutoff ? estimates.filter(e => new Date(e.created_at).getTime() >= cutoff) : estimates;
+  const filteredInvoices  = cutoff ? invoices.filter(i => new Date(i.created_at).getTime() >= cutoff)  : invoices;
 
-  // Estimate counts
-  const estDraft    = estimates.filter(e => e.status === "draft").length;
-  const estSent     = estimates.filter(e => e.status === "sent").length;
-  const estApproved = estimates.filter(e => e.status === "approved").length;
-  const estInvoiced = estimates.filter(e => e.status === "invoiced").length;
-  const estDeclined = estimates.filter(e => e.status === "declined").length;
-  const estTotal    = estimates.length;
+  // KPIs (filtered)
+  const revenue     = filteredInvoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0);
+  const outstanding = filteredInvoices.filter(i => i.status === "sent").reduce((s, i) => s + i.total, 0);
+  const overdue     = filteredInvoices.filter(i => i.status === "overdue").reduce((s, i) => s + i.total, 0);
+  const pipeline    = filteredEstimates.filter(e => ["draft","sent","approved"].includes(e.status)).reduce((s, e) => s + e.total, 0);
 
-  // Invoice counts
-  const invDraft   = invoices.filter(i => i.status === "draft").length;
-  const invSent    = invoices.filter(i => i.status === "sent").length;
-  const invPaid    = invoices.filter(i => i.status === "paid").length;
-  const invOverdue = invoices.filter(i => i.status === "overdue").length;
-  const invTotal   = invoices.length;
+  // Estimate counts (filtered)
+  const estDraft    = filteredEstimates.filter(e => e.status === "draft").length;
+  const estSent     = filteredEstimates.filter(e => e.status === "sent").length;
+  const estApproved = filteredEstimates.filter(e => e.status === "approved").length;
+  const estInvoiced = filteredEstimates.filter(e => e.status === "invoiced").length;
+  const estDeclined = filteredEstimates.filter(e => e.status === "declined").length;
+  const estTotal    = filteredEstimates.length;
 
-  // Needs attention
+  // Invoice counts (filtered)
+  const invDraft   = filteredInvoices.filter(i => i.status === "draft").length;
+  const invSent    = filteredInvoices.filter(i => i.status === "sent").length;
+  const invPaid    = filteredInvoices.filter(i => i.status === "paid").length;
+  const invOverdue = filteredInvoices.filter(i => i.status === "overdue").length;
+  const invTotal   = filteredInvoices.length;
+
+  // Job counts (not period-filtered — jobs are ongoing, not time-boxed)
+  const jobActive    = jobs.filter(j => j.status === "active").length;
+  const jobCompleted = jobs.filter(j => j.status === "completed").length;
+  const jobCancelled = jobs.filter(j => j.status === "cancelled").length;
+  const jobTotal     = jobs.length;
+
+  // Recent jobs
+  const recentJobs = jobs.slice(0, 6);
+
+  // Needs attention — always unfiltered (reflects current state)
   const approvedEstimates = estimates.filter(e => e.status === "approved");
   const sentEstimates     = estimates.filter(e => e.status === "sent");
   const overdueInvoices   = invoices.filter(i => i.status === "overdue");
   const hasAttention      = approvedEstimates.length > 0 || overdueInvoices.length > 0;
 
-  // Today widget
+  // Today widget — always unfiltered
   const weekAgo       = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const paidThisWeek  = invoices
     .filter(i => i.status === "paid" && new Date(i.created_at).getTime() >= weekAgo)
     .reduce((s, i) => s + i.total, 0);
 
-  // Recent
-  const recentEstimates = estimates.slice(0, 6);
-  const recentInvoices  = invoices.slice(0, 6);
+  // Recent (filtered)
+  const recentEstimates = filteredEstimates.slice(0, 6);
+  const recentInvoices  = filteredInvoices.slice(0, 6);
 
   // Greeting
   const hour     = new Date().getHours();
@@ -160,7 +210,16 @@ export function DashboardHome({
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">{today}</p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as Period)}
+            className="rounded border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none"
+          >
+            {(Object.entries(PERIOD_LABELS) as [Period, string][]).map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
           <Link
             href="/dashboard/estimates/new"
             className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
@@ -292,26 +351,6 @@ export function DashboardHome({
       {/* Status breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* Estimates */}
-        <div className="bg-white border border-gray-200 rounded px-5 py-3">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Estimates</p>
-            <Link href="/dashboard/estimates" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-              View all →
-            </Link>
-          </div>
-          <div className="space-y-2.5">
-            <StatusBar label="Draft"    count={estDraft}    total={estTotal} barClass="bg-gray-300"   href="/dashboard/estimates?status=draft" />
-            <StatusBar label="Sent"     count={estSent}     total={estTotal} barClass="bg-blue-400"   href="/dashboard/estimates?status=sent" />
-            <StatusBar label="Approved" count={estApproved} total={estTotal} barClass="bg-amber-400"  href="/dashboard/estimates?status=approved" />
-            <StatusBar label="Invoiced" count={estInvoiced} total={estTotal} barClass="bg-emerald-400" href="/dashboard/estimates?status=invoiced" />
-            <StatusBar label="Declined" count={estDeclined} total={estTotal} barClass="bg-red-300"    href="/dashboard/estimates?status=declined" />
-          </div>
-          <p className="text-xs text-gray-400 mt-3 pt-2 border-t border-gray-100">
-            {estTotal} total · {fmt(estimates.reduce((s, e) => s + e.total, 0))} lifetime value
-          </p>
-        </div>
-
         {/* Invoices */}
         <div className="bg-white border border-gray-200 rounded px-5 py-3">
           <div className="flex items-center justify-between mb-3">
@@ -333,58 +372,28 @@ export function DashboardHome({
               : "—"}
           </p>
         </div>
+
+        {/* Jobs */}
+        <div className="bg-white border border-gray-200 rounded px-5 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Jobs</p>
+            <Link href="/dashboard/jobs" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+              View all →
+            </Link>
+          </div>
+          <div className="space-y-2.5">
+            <StatusBar label="Active"    count={jobActive}    total={jobTotal} barClass="bg-blue-400"    href="/dashboard/jobs?status=active" />
+            <StatusBar label="Completed" count={jobCompleted} total={jobTotal} barClass="bg-emerald-400" href="/dashboard/jobs?status=completed" />
+            <StatusBar label="Cancelled" count={jobCancelled} total={jobTotal} barClass="bg-gray-300"    href="/dashboard/jobs?status=cancelled" />
+          </div>
+          <p className="text-xs text-gray-400 mt-3 pt-2 border-t border-gray-100">
+            {jobTotal} total · {jobActive} active
+          </p>
+        </div>
       </div>
 
       {/* Recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Recent estimates */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-900">Recent Estimates</h2>
-            <Link href="/dashboard/estimates/new" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-              + New
-            </Link>
-          </div>
-          {recentEstimates.length === 0 ? (
-            <div className="bg-white border border-gray-200 rounded p-8 text-center">
-              <p className="text-sm text-gray-400">No estimates yet.</p>
-              <Link href="/dashboard/estimates/new" className="mt-2 inline-block text-xs text-blue-600 hover:text-blue-700 font-medium">
-                Create your first →
-              </Link>
-            </div>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded overflow-hidden">
-              <table className="w-full text-sm">
-                <tbody className="divide-y divide-gray-100">
-                  {recentEstimates.map((est) => (
-                    <tr
-                      key={est.id}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => router.push(`/dashboard/estimates/${est.id}`)}
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{est.customer_name || "—"}</p>
-                        <p className="text-xs text-gray-400 font-mono mt-0.5">
-                          EST-{new Date(est.created_at).getFullYear()}-{String(est.estimate_number).padStart(3, "0")}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium capitalize ${EST_BADGE[est.status] ?? ""}`}>
-                          {est.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <p className="text-lg font-semibold text-gray-900">{fmt(est.total)}</p>
-                        <p className="text-xs text-gray-400">{fmtDate(est.created_at)}</p>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
 
         {/* Recent invoices */}
         <div>
@@ -423,6 +432,51 @@ export function DashboardHome({
                       <td className="px-4 py-3 text-right">
                         <p className="text-lg font-semibold text-gray-900">{fmt(inv.total)}</p>
                         <p className="text-xs text-gray-400">{fmtDate(inv.created_at)}</p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Recent jobs */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900">Recent Jobs</h2>
+            <Link href="/dashboard/jobs" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+              View all →
+            </Link>
+          </div>
+          {recentJobs.length === 0 ? (
+            <div className="bg-white border border-gray-200 rounded p-8 text-center">
+              <p className="text-sm text-gray-400">No jobs yet.</p>
+              <Link href="/dashboard/jobs" className="mt-2 inline-block text-xs text-blue-600 hover:text-blue-700 font-medium">
+                Create your first →
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded overflow-hidden">
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-gray-100">
+                  {recentJobs.map((job) => (
+                    <tr
+                      key={job.id}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/dashboard/jobs/${job.id}`)}
+                    >
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900">{job.title || "—"}</p>
+                        <p className="text-xs text-gray-400 font-mono mt-0.5">{job.id.slice(0, 8).toUpperCase()}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium capitalize ${JOB_BADGE[job.status] ?? ""}`}>
+                          {job.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <p className="text-xs text-gray-400">{fmtDate(job.created_at)}</p>
                       </td>
                     </tr>
                   ))}

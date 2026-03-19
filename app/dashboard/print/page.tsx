@@ -95,10 +95,36 @@ export default function PrintPage() {
 
         <div className="space-y-4">
           <AssetSelector selected={selectedAssetId} onChange={setSelectedAssetId} />
-          <AssetTemplateGrid
-            asset={selectedAsset}
-            onSelect={(tpl) => openEditor(selectedAsset, tpl)}
-          />
+          {selectedAssetId === "eddm-mailer" ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">EDDM Mailer</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Every Door Direct Mail — print-ready PDF</p>
+                </div>
+                <a
+                  href="/eddm_mailer.pdf"
+                  download="eddm_mailer.pdf"
+                  className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                >
+                  Download PDF
+                </a>
+              </div>
+              <div className="w-full rounded border border-gray-200 overflow-hidden bg-gray-50" style={{ height: "700px" }}>
+                <iframe
+                  src="/eddm_mailer.pdf"
+                  title="EDDM Mailer"
+                  className="w-full h-full"
+                  style={{ border: "none" }}
+                />
+              </div>
+            </div>
+          ) : (
+            <AssetTemplateGrid
+              asset={selectedAsset}
+              onSelect={(tpl) => openEditor(selectedAsset, tpl)}
+            />
+          )}
         </div>
       </main>
 

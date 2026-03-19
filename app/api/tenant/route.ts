@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
-const FIELDS = "name, ccb_number, tagline, email, phone, website, address_street, address_city, address_state, address_zip";
+const FIELDS = "name, ccb_number, tagline, email, phone, website, address_street, address_city, address_state, address_zip, cashapp_tag";
 
 export async function GET() {
   const supabase = await createSupabaseServerClient();
@@ -40,6 +40,7 @@ export async function PUT(request: Request) {
       address_city:    body.address_city    ?? null,
       address_state:   body.address_state   ?? null,
       address_zip:     body.address_zip     ?? null,
+      cashapp_tag:     body.cashapp_tag     ?? null,
     })
     .select(FIELDS)
     .single();

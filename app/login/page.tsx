@@ -27,7 +27,7 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
       }
-      router.push("/dashboard/print");
+      router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");

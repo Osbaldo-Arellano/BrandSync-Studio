@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
-import { Resend } from "resend";
+import { createTransport, FROM } from "@/lib/mailer";
 
 export async function POST(
   request: Request,
@@ -16,6 +16,11 @@ export async function POST(
 
   if (!customerEmail?.trim()) {
     return NextResponse.json({ error: "A client email is required" }, { status: 400 });
+  }
+
+  const { isValidEmail } = await import("@/lib/validation");
+  if (!isValidEmail(customerEmail)) {
+    return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();
@@ -40,10 +45,10 @@ export async function POST(
   const link = `${appUrl}/e/${id}`;
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: [customerEmail.trim()],
+    const transporter = createTransport();
+    await transporter.sendMail({
+      from: FROM,
+      to: customerEmail.trim(),
       subject: `Your estimate from ${tenantName}`,
       html: `
         <p>Hi ${estimate.customer_name},</p>
@@ -64,6 +69,7 @@ export async function POST(
       customer_email: customerEmail.trim(),
       status: "sent",
       sent_at: new Date().toISOString(),
+      delivery_method: "email",
     })
     .eq("id", id);
 

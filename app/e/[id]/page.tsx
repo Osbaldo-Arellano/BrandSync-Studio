@@ -61,6 +61,10 @@ export default async function PublicEstimatePage({
     notes: row.notes ?? "",
     deposit: row.deposit ?? 0,
     total: row.total ?? 0,
+    tax_rate: (row.tax_rate as number) ?? 0,
+    tax_amount: (row.tax_amount as number) ?? 0,
+    discount_amount: (row.discount_amount as number) ?? 0,
+    expires_at: (row.expires_at as string | null) ?? null,
     created_at: row.created_at,
     sent_at: row.sent_at ?? null,
     signature_url: row.signature_url ?? null,
@@ -81,6 +85,7 @@ export default async function PublicEstimatePage({
   const total = subtotal - estimate.deposit;
   const alreadySigned = !!estimate.signed_at;
   const alreadyDeclined = estimate.status === "declined";
+  const isExpired = estimate.expires_at && new Date(estimate.expires_at) < new Date();
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -260,6 +265,11 @@ export default async function PublicEstimatePage({
           <div className="rounded border border-red-200 bg-red-50 p-6 text-center">
             <p className="text-sm font-semibold text-red-700">This estimate has been declined.</p>
             <p className="text-xs text-gray-500 mt-1">Contact {tenantProfile.name} if you&apos;d like to discuss revised terms.</p>
+          </div>
+        ) : isExpired ? (
+          <div className="rounded border border-amber-200 bg-amber-50 p-6 text-center">
+            <p className="text-sm font-semibold text-amber-700">This estimate has expired.</p>
+            <p className="text-xs text-gray-500 mt-1">Contact {tenantProfile.name} to request an updated estimate.</p>
           </div>
         ) : (
           <SignaturePanel estimateId={id} tenant={tenantProfile} />

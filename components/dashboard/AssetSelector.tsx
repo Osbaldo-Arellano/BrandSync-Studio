@@ -25,6 +25,7 @@ export function AssetSelector({ selected, onChange }: AssetSelectorProps) {
             {a.label}
           </option>
         ))}
+        <option value="eddm-mailer">EDDM Mailer</option>
       </select>
     </div>
   );

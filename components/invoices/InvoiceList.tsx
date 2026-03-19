@@ -20,6 +20,8 @@ interface Invoice {
   status: InvoiceStatus;
   total: number;
   created_at: string;
+  invoice_number?: number;
+  due_date?: string | null;
   items: InvoiceItem[];
 }
 
@@ -30,7 +32,9 @@ const STATUS_STYLES: Record<InvoiceStatus, string> = {
   overdue:  "bg-red-50 text-red-700 border border-red-200",
   partial:  "bg-amber-50 text-amber-700 border border-amber-200",
   cash:     "bg-teal-50 text-teal-700 border border-teal-200",
+  cashapp:  "bg-green-50 text-green-700 border border-green-200",
   deferred: "bg-orange-50 text-orange-700 border border-orange-200",
+  void:     "bg-gray-100 text-gray-400 border border-gray-200 line-through",
 };
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
@@ -40,7 +44,9 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
   overdue:  "Overdue",
   partial:  "Partial",
   cash:     "Cash",
+  cashapp:  "Cash App",
   deferred: "Pay Later",
+  void:     "Void",
 };
 
 const FILTER_TABS: { label: string; value: InvoiceStatus | "all" }[] = [
@@ -49,9 +55,11 @@ const FILTER_TABS: { label: string; value: InvoiceStatus | "all" }[] = [
   { label: "Sent",      value: "sent" },
   { label: "Partial",   value: "partial" },
   { label: "Cash",      value: "cash" },
+  { label: "Cash App",  value: "cashapp" },
   { label: "Pay Later", value: "deferred" },
   { label: "Paid",      value: "paid" },
   { label: "Overdue",   value: "overdue" },
+  { label: "Void",      value: "void" },
 ];
 
 function StatusBadge({ status }: { status: InvoiceStatus }) {
@@ -82,6 +90,7 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
   const [filter, setFilter] = useState<InvoiceStatus | "all">(initialFilter);
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const router = useRouter();
@@ -108,6 +117,22 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
     };
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
+  }
+
+  async function deleteInvoice(id: string) {
+    if (!confirm("Delete this draft invoice? This cannot be undone.")) return;
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setInvoices((prev) => prev.filter((inv) => inv.id !== id));
+      } else {
+        const data = await res.json();
+        alert(data.error ?? "Failed to delete invoice");
+      }
+    } finally {
+      setDeleting(null);
+    }
   }
 
   async function updateStatus(id: string, status: InvoiceStatus) {
@@ -149,6 +174,12 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
             Invoices generated from approved estimates
           </p>
         </div>
+        <Link
+          href="/dashboard/invoices/new"
+          className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shrink-0"
+        >
+          + New Invoice
+        </Link>
       </div>
 
       {/* Stats bar — desktop only */}
@@ -234,7 +265,9 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                 >
                   <td className="px-5 py-4">
                     <div className="text-xs text-gray-400 font-mono">
-                      INV-{inv.id.slice(0, 8).toUpperCase()}
+                      {inv.invoice_number
+                        ? `INV-${String(inv.invoice_number).padStart(4, "0")}`
+                        : `INV-${inv.id.slice(0, 8).toUpperCase()}`}
                     </div>
                     {inv.estimate_id && (
                       <Link
@@ -248,7 +281,16 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                   </td>
                   <td className="px-5 py-4 text-sm font-medium text-gray-900">{inv.customer_name}</td>
                   <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">
-                    {new Date(inv.created_at).toLocaleDateString()}
+                    <div>{new Date(inv.created_at).toLocaleDateString()}</div>
+                    {inv.due_date && (
+                      <div className={`text-xs mt-0.5 ${
+                        inv.due_date < new Date().toISOString().slice(0, 10) && inv.status !== "paid" && inv.status !== "void"
+                          ? "text-red-500 font-medium"
+                          : "text-gray-400"
+                      }`}>
+                        Due {inv.due_date}
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     <StatusBadge status={inv.status} />
@@ -261,16 +303,16 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                       {inv.status === "draft" && (
                         <button
                           onClick={() => updateStatus(inv.id, "sent")}
-                          disabled={updating === inv.id}
+                          disabled={!!updating}
                           className="rounded border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
                         >
                           Mark Sent
                         </button>
                       )}
-                      {(inv.status === "sent" || inv.status === "cash" || inv.status === "deferred" || inv.status === "partial") && (
+                      {(inv.status === "sent" || inv.status === "cash" || inv.status === "cashapp" || inv.status === "deferred" || inv.status === "partial") && (
                         <button
                           onClick={() => updateStatus(inv.id, "paid")}
-                          disabled={updating === inv.id}
+                          disabled={!!updating}
                           className="rounded border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
                         >
                           Mark Paid
@@ -279,7 +321,7 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                       {(inv.status === "sent" || inv.status === "deferred") && (
                         <button
                           onClick={() => updateStatus(inv.id, "overdue")}
-                          disabled={updating === inv.id}
+                          disabled={!!updating}
                           className="rounded border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
                         >
                           Overdue
@@ -288,11 +330,26 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                       {inv.status === "paid" && (
                         <span className="text-xs text-emerald-600 font-medium">Paid ✓</span>
                       )}
+                      <Link
+                        href={`/dashboard/invoices/${inv.id}`}
+                        className="ml-auto rounded border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                      >
+                        Edit
+                      </Link>
+                      {inv.status === "draft" && (
+                        <button
+                          onClick={() => deleteInvoice(inv.id)}
+                          disabled={deleting === inv.id}
+                          className="rounded border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                        >
+                          {deleting === inv.id ? "…" : "Delete"}
+                        </button>
+                      )}
                       <a
                         href={`/api/invoices/${inv.id}/pdf`}
                         download
                         title="Download PDF"
-                        className="ml-auto text-gray-400 hover:text-gray-600 transition-colors"
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
                       >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -365,27 +422,38 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
             <div key={inv.id} className="rounded border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
-                  <p className="text-xs text-gray-400 font-mono">INV-{inv.id.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-xs text-gray-400 font-mono">
+                    {inv.invoice_number
+                      ? `INV-${String(inv.invoice_number).padStart(4, "0")}`
+                      : `INV-${inv.id.slice(0, 8).toUpperCase()}`}
+                  </p>
                   <p className="font-semibold text-gray-900 mt-0.5">{inv.customer_name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{new Date(inv.created_at).toLocaleDateString()}</p>
+                  {inv.due_date && (
+                    <p className={`text-xs mt-0.5 ${
+                      inv.due_date < new Date().toISOString().slice(0, 10) && inv.status !== "paid" && inv.status !== "void"
+                        ? "text-red-500 font-medium"
+                        : "text-gray-400"
+                    }`}>Due {inv.due_date}</p>
+                  )}
                 </div>
                 <StatusBadge status={inv.status} />
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-2 items-center flex-wrap">
                   {inv.status === "draft" && (
                     <button
                       onClick={() => updateStatus(inv.id, "sent")}
-                      disabled={updating === inv.id}
+                      disabled={!!updating}
                       className="rounded border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                     >
                       Mark Sent
                     </button>
                   )}
-                  {(inv.status === "sent" || inv.status === "cash" || inv.status === "deferred" || inv.status === "partial") && (
+                  {(inv.status === "sent" || inv.status === "cash" || inv.status === "cashapp" || inv.status === "deferred" || inv.status === "partial") && (
                     <button
                       onClick={() => updateStatus(inv.id, "paid")}
-                      disabled={updating === inv.id}
+                      disabled={!!updating}
                       className="rounded border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
                     >
                       Mark Paid
@@ -394,7 +462,7 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                   {(inv.status === "sent" || inv.status === "deferred") && (
                     <button
                       onClick={() => updateStatus(inv.id, "overdue")}
-                      disabled={updating === inv.id}
+                      disabled={!!updating}
                       className="rounded border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
                     >
                       Overdue
@@ -402,6 +470,21 @@ export function InvoiceList({ invoices: initial }: { invoices: Invoice[] }) {
                   )}
                   {inv.status === "paid" && (
                     <span className="text-xs text-emerald-600 font-medium">Paid ✓</span>
+                  )}
+                  <Link
+                    href={`/dashboard/invoices/${inv.id}`}
+                    className="rounded border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Edit
+                  </Link>
+                  {inv.status === "draft" && (
+                    <button
+                      onClick={() => deleteInvoice(inv.id)}
+                      disabled={deleting === inv.id}
+                      className="rounded border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {deleting === inv.id ? "…" : "Delete"}
+                    </button>
                   )}
                   <a
                     href={`/api/invoices/${inv.id}/pdf`}

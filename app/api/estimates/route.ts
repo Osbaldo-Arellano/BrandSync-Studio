@@ -20,6 +20,10 @@ function mapRow(row: Record<string, unknown>): Estimate {
     notes: (row.notes as string) ?? "",
     deposit: (row.deposit as number) ?? 0,
     total: (row.total as number) ?? 0,
+    tax_rate: (row.tax_rate as number) ?? 0,
+    tax_amount: (row.tax_amount as number) ?? 0,
+    discount_amount: (row.discount_amount as number) ?? 0,
+    expires_at: (row.expires_at as string | null) ?? null,
     created_at: row.created_at as string,
     sent_at: (row.sent_at as string | null) ?? null,
     signature_url: (row.signature_url as string | null) ?? null,
@@ -61,7 +65,14 @@ export async function POST(request: Request) {
   const {
     customerName, customerAddress, salesperson, job,
     paymentTerms, dueDate, deposit, cashNote, notes, items, total,
+    taxRate, taxAmount, discountAmount, expiresAt, jobId,
   } = body;
+
+  const { validateLineItems } = await import("@/lib/validation");
+  const itemErrors = validateLineItems(items ?? []);
+  if (itemErrors.length > 0) {
+    return NextResponse.json({ error: itemErrors[0].message, errors: itemErrors }, { status: 400 });
+  }
 
   const { data: estimate, error: estError } = await supabase
     .from("estimates")
@@ -79,6 +90,11 @@ export async function POST(request: Request) {
       notes,
       deposit,
       total,
+      tax_rate: taxRate ?? 0,
+      tax_amount: taxAmount ?? 0,
+      discount_amount: discountAmount ?? 0,
+      expires_at: expiresAt ?? null,
+      job_id: jobId ?? null,
     })
     .select()
     .single();

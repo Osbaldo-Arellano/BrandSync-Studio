@@ -20,7 +20,10 @@ export function estimateHtml(estimate: Estimate, signatureDataUrl?: string, tena
   const taglineHtml = tagline || "Licensed, Bonded, Insured";
 
   const subtotal = estimate.items.reduce((s, i) => s + i.line_total, 0);
-  const total = subtotal - estimate.deposit;
+  const discountAmount = estimate.discount_amount ?? 0;
+  const taxAmount = estimate.tax_amount ?? 0;
+  const taxRate = estimate.tax_rate ?? 0;
+  const total = subtotal - discountAmount + taxAmount;
 
   const itemRows = estimate.items.map((item) => `
     <tr>
@@ -81,12 +84,16 @@ export function estimateHtml(estimate: Estimate, signatureDataUrl?: string, tena
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:1px solid #e5e7eb;margin-bottom:24px;">
     <div>
       <p style="font-size:16px;font-weight:700;color:#111827;">${name}</p>
-      <p style="font-size:12px;color:#6b7280;margin-top:4px;line-height:1.5;">${addrHtml}${ccbHtml}${taglineHtml}</p>
+      <p style="font-size:12px;color:#6b7280;margin-top:4px;line-height:1.6;">${addrHtml}${ccbHtml}${taglineHtml}</p>
+      ${tenant?.phone ? `<p style="font-size:12px;color:#6b7280;margin-top:2px;">${tenant.phone}</p>` : ""}
+      ${tenant?.email ? `<p style="font-size:12px;color:#6b7280;margin-top:2px;">${tenant.email}</p>` : ""}
     </div>
     <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
       ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="max-height:52px;max-width:180px;object-fit:contain;display:block;margin-left:auto;margin-bottom:4px;">` : ""}
       <p style="font-size:16px;font-weight:700;color:#111827;">Estimate</p>
-      <p style="font-size:12px;color:#6b7280;">Date: ${new Date(estimate.created_at).toLocaleDateString("en-US")}</p>
+      <p style="font-size:12px;font-family:monospace;color:#6b7280;margin-top:2px;">EST-${new Date(estimate.created_at).getFullYear()}-${String(estimate.estimate_number).padStart(3, "0")}</p>
+      <p style="font-size:12px;color:#6b7280;margin-top:2px;">Date: ${new Date(estimate.created_at).toLocaleDateString("en-US")}</p>
+      ${estimate.expires_at ? `<p style="font-size:12px;color:#dc2626;margin-top:2px;">Expires: ${new Date(estimate.expires_at).toLocaleDateString("en-US")}</p>` : ""}
     </div>
   </div>
 
@@ -139,14 +146,26 @@ export function estimateHtml(estimate: Estimate, signatureDataUrl?: string, tena
           <td style="padding:6px 12px;text-align:right;color:#6b7280;">Subtotal</td>
           <td style="padding:6px 12px;text-align:right;border:1px solid #d1d5db;background:#e8f0e8;min-width:110px;">${usd(subtotal)}</td>
         </tr>
-        <tr>
-          <td style="padding:6px 12px;text-align:right;color:#6b7280;">Deposit</td>
-          <td style="padding:6px 12px;text-align:right;border:1px solid #d1d5db;background:#e8f0e8;">${usd(estimate.deposit)}</td>
-        </tr>
+        ${discountAmount > 0 ? `<tr>
+          <td style="padding:6px 12px;text-align:right;color:#6b7280;">Discount</td>
+          <td style="padding:6px 12px;text-align:right;border:1px solid #d1d5db;background:#e8f0e8;color:#059669;">&minus;${usd(discountAmount)}</td>
+        </tr>` : ""}
+        ${taxAmount > 0 ? `<tr>
+          <td style="padding:6px 12px;text-align:right;color:#6b7280;">Tax${taxRate > 0 ? ` (${taxRate}%)` : ""}</td>
+          <td style="padding:6px 12px;text-align:right;border:1px solid #d1d5db;background:#e8f0e8;">${usd(taxAmount)}</td>
+        </tr>` : ""}
         <tr>
           <td style="padding:6px 12px;text-align:right;font-weight:700;color:#111827;">Total</td>
           <td style="padding:6px 12px;text-align:right;border:1px solid #d1d5db;background:#e8f0e8;font-weight:700;">${usd(total)}</td>
         </tr>
+        ${estimate.deposit > 0 ? `<tr>
+          <td style="padding:6px 12px;text-align:right;color:#6b7280;">Deposit Due</td>
+          <td style="padding:6px 12px;text-align:right;border:1px solid #d1d5db;background:#e8f0e8;color:#dc2626;">${usd(estimate.deposit)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 12px;text-align:right;font-weight:700;color:#111827;">Balance Due</td>
+          <td style="padding:6px 12px;text-align:right;border:1px solid #d1d5db;background:#e8f0e8;font-weight:700;">${usd(total - estimate.deposit)}</td>
+        </tr>` : ""}
       </tbody>
     </table>
   </div>

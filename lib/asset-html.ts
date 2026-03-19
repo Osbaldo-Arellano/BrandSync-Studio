@@ -189,9 +189,10 @@ function fiveStarsSvg(size: number, color: string): string {
 
 /** Resolve logo/icon src — returns null if none uploaded (no hardcoded fallback). */
 function assets(opts: GenerateOptions) {
+  const { l } = themeFor(opts.templateId);
   return {
-    logoSrc: opts.logo ?? null,
-    iconSrc: opts.icon ?? null,
+    logoSrc: opts.logo ?? l.logo,
+    iconSrc: opts.icon ?? l.icon,
   };
 }
 

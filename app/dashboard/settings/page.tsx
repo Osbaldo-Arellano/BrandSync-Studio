@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { SettingsShell } from "@/components/dashboard/SettingsShell";
 import type { TenantProfile } from "@/types/tenant";
 
-const TENANT_FIELDS = "name, ccb_number, tagline, email, phone, website, address_street, address_city, address_state, address_zip";
+const TENANT_FIELDS = "name, ccb_number, tagline, email, phone, website, address_street, address_city, address_state, address_zip, cashapp_tag";
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient();
@@ -27,6 +27,7 @@ export default async function SettingsPage() {
     address_city:   tenant?.address_city   ?? "",
     address_state:  tenant?.address_state  ?? "",
     address_zip:    tenant?.address_zip    ?? "",
+    cashapp_tag:    tenant?.cashapp_tag    ?? "",
   };
 
   return <SettingsShell initial={initial} />;

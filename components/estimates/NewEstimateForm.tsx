@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { TenantProfile } from "@/types/tenant";
 import { formatTenantAddress } from "@/types/tenant";
+
+interface CustomerSuggestion {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+}
 
 interface FormLineItem {
   id: string;
@@ -98,11 +106,42 @@ export function NewEstimateForm({ tenant }: { tenant: TenantProfile }) {
   const addrSubtitle = [street, cityLine].filter(Boolean).join(", ");
   const logoUrl = tenant.logo_url ?? null;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const jobIdParam = searchParams.get("jobId") ?? "";
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const [customerName, setCustomerName] = useState("");
-  const [customerAddress, setCustomerAddress] = useState("");
+  const [customerName, setCustomerName] = useState(searchParams.get("customerName") ?? "");
+  const [customerAddress, setCustomerAddress] = useState(
+    searchParams.get("jobAddress") ?? searchParams.get("customerAddress") ?? ""
+  );
+  const [customerPhone, setCustomerPhone] = useState(searchParams.get("customerPhone") ?? "");
+  const [allCustomers, setAllCustomers] = useState<CustomerSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<CustomerSuggestion[]>([]);
+
+  useEffect(() => {
+    fetch("/api/customers")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: CustomerSuggestion[]) => setAllCustomers(data))
+      .catch(() => {});
+  }, []);
+
+  function handleCustomerNameChange(val: string) {
+    setCustomerName(val);
+    if (!val.trim()) { setSuggestions([]); return; }
+    const lower = val.toLowerCase();
+    setSuggestions(
+      allCustomers.filter((c) => c.name.toLowerCase().includes(lower)).slice(0, 5)
+    );
+  }
+
+  function selectCustomer(c: CustomerSuggestion) {
+    setCustomerName(c.name);
+    setCustomerAddress(c.address ?? "");
+    setCustomerPhone(c.phone ?? "");
+    setSuggestions([]);
+  }
+
   const [salesperson, setSalesperson] = useState("");
   const [job, setJob] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("End of project");
@@ -110,11 +149,17 @@ export function NewEstimateForm({ tenant }: { tenant: TenantProfile }) {
   const [dateValue, setDateValue] = useState("");
   const [items, setItems] = useState<FormLineItem[]>([newLineItem()]);
   const [deposit, setDeposit] = useState(0);
+  const [taxRate, setTaxRate] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [expiresAt, setExpiresAt] = useState(() =>
+    new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  );
   const [cashNote, setCashNote] = useState("-$500.00 off if paid in cash");
   const [notes, setNotes] = useState("");
 
   const dueDate = isTBD ? "TBD" : dateValue;
   const subtotal = items.reduce((s, i) => s + i.line_total, 0);
+  const taxAmount = (subtotal - discountAmount) > 0 ? ((subtotal - discountAmount) * taxRate) / 100 : 0;
   const total = subtotal - deposit;
 
   function updateItem(id: string, patch: Partial<FormLineItem>) {
@@ -144,8 +189,11 @@ export function NewEstimateForm({ tenant }: { tenant: TenantProfile }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerName, customerAddress, salesperson, job,
+          customerName, customerAddress, customerPhone: customerPhone || null,
+          salesperson, job,
           paymentTerms, dueDate, deposit, cashNote, notes, items, total,
+          taxRate, taxAmount, discountAmount, expiresAt,
+          jobId: jobIdParam || undefined,
         }),
       });
       if (!res.ok) {
@@ -206,16 +254,43 @@ export function NewEstimateForm({ tenant }: { tenant: TenantProfile }) {
             </div>
 
             {/* To / Customer */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="relative">
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
                   Customer name
                 </label>
                 <input
                   type="text"
                   value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
+                  onChange={(e) => handleCustomerNameChange(e.target.value)}
+                  onBlur={() => setTimeout(() => setSuggestions([]), 150)}
                   placeholder="Company or person name"
+                  className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                />
+                {suggestions.length > 0 && (
+                  <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded shadow-md max-h-48 overflow-y-auto">
+                    {suggestions.map((c) => (
+                      <li
+                        key={c.id}
+                        onMouseDown={() => selectCustomer(c)}
+                        className="px-3 py-2 text-sm text-gray-900 hover:bg-blue-50 cursor-pointer"
+                      >
+                        <span className="font-medium">{c.name}</span>
+                        {c.phone && <span className="text-gray-400 ml-2 text-xs">{c.phone}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
+                  Customer phone
+                </label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="(503) 555-0100"
                   className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
                 />
               </div>
@@ -398,6 +473,40 @@ export function NewEstimateForm({ tenant }: { tenant: TenantProfile }) {
                     </td>
                   </tr>
                   <tr>
+                    <td className="px-4 py-1.5 text-gray-600 text-right">Discount</td>
+                    <td className="border border-gray-300 bg-[#e8f0e8] px-2 py-1">
+                      <USDInput
+                        value={discountAmount}
+                        onChange={setDiscountAmount}
+                        placeholder="$0.00"
+                        className="w-full text-sm text-gray-900 text-right focus:outline-none bg-transparent"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-1.5 text-gray-600 text-right">Tax Rate (%)</td>
+                    <td className="border border-gray-300 bg-[#e8f0e8] px-2 py-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={taxRate || ""}
+                        onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        className="w-full text-sm text-gray-900 text-right focus:outline-none bg-transparent"
+                      />
+                    </td>
+                  </tr>
+                  {taxAmount > 0 && (
+                    <tr>
+                      <td className="px-4 py-1.5 text-gray-500 text-right text-xs">Tax ({taxRate}%)</td>
+                      <td className="px-4 py-1.5 text-right text-gray-700 text-xs border border-gray-300 bg-[#e8f0e8]">
+                        {taxAmount.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                      </td>
+                    </tr>
+                  )}
+                  <tr>
                     <td className="px-4 py-1.5 text-gray-600 text-right">Deposit</td>
                     <td className="border border-gray-300 bg-[#e8f0e8] px-2 py-1">
                       <USDInput
@@ -416,6 +525,20 @@ export function NewEstimateForm({ tenant }: { tenant: TenantProfile }) {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            {/* Expiry date */}
+            <div className="flex items-center gap-4">
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 shrink-0">
+                Estimate Expires
+              </label>
+              <input
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+              />
+              <span className="text-xs text-gray-400">30-day default</span>
             </div>
 
             {/* NOTE */}

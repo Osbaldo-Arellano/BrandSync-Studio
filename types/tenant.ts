@@ -11,6 +11,7 @@ export interface TenantProfile {
   address_zip: string;
   logo_url?: string | null;
   icon_url?: string | null;
+  cashapp_tag?: string | null;
 }
 
 export const emptyTenant: TenantProfile = {

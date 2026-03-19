@@ -7,7 +7,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: estimates }, { data: invoices }, { data: tenant }] = await Promise.all([
+  const [{ data: estimates }, { data: invoices }, { data: jobs }, { data: tenant }] = await Promise.all([
     supabase
       .from("estimates")
       .select("id, estimate_number, customer_name, status, total, created_at")
@@ -16,6 +16,11 @@ export default async function DashboardPage() {
     supabase
       .from("invoices")
       .select("id, customer_name, status, total, created_at")
+      .eq("tenant_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("jobs")
+      .select("id, title, status, created_at")
       .eq("tenant_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -29,6 +34,7 @@ export default async function DashboardPage() {
     <DashboardHome
       estimates={estimates ?? []}
       invoices={invoices ?? []}
+      jobs={jobs ?? []}
       tenantName={tenant?.name ?? ""}
     />
   );

@@ -5,13 +5,18 @@ import nodemailer from "nodemailer";
 
 export const runtime = "nodejs";
 
-const ORDER_EMAIL = "o.arellano.dev@gmail.com";
+const ORDER_EMAIL = process.env.ORDER_EMAIL ?? process.env.SMTP_USER ?? "";
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  if (!ORDER_EMAIL) {
+    console.error("[order] ORDER_EMAIL or SMTP_USER env var not set");
+    return new Response("Order service not configured", { status: 503 });
   }
 
   const { html, filename, quantity } = await req.json();

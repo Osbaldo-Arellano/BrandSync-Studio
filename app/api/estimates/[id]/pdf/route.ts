@@ -65,6 +65,10 @@ export async function GET(
     notes: row.notes ?? "",
     deposit: row.deposit ?? 0,
     total: row.total ?? 0,
+    tax_rate: (row.tax_rate as number) ?? 0,
+    tax_amount: (row.tax_amount as number) ?? 0,
+    discount_amount: (row.discount_amount as number) ?? 0,
+    expires_at: (row.expires_at as string | null) ?? null,
     created_at: row.created_at,
     sent_at: row.sent_at ?? null,
     signature_url: row.signature_url ?? null,
@@ -82,7 +86,13 @@ export async function GET(
   };
 
   const html = estimateHtml(estimate, estimate.signature_url ?? undefined, tenantProfile);
-  const pdf = await generatePdf(html);
+  let pdf: Awaited<ReturnType<typeof generatePdf>>;
+  try {
+    pdf = await generatePdf(html);
+  } catch (err) {
+    console.error("[estimate-pdf] Generation failed:", (err as Error).message);
+    return new Response("PDF generation failed. Please try again.", { status: 500 });
+  }
   const filename = `estimate-${id.slice(0, 8)}.pdf`;
 
   return new Response(pdf.buffer as ArrayBuffer, {

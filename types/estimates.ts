@@ -26,6 +26,12 @@ export interface Estimate {
   notes: string;
   deposit: number;
   total: number;
+  tax_rate: number;
+  tax_amount: number;
+  discount_amount: number;
+  expires_at?: string | null;
+  job_id?: string | null;
+  delivery_method?: "email" | "link" | "print" | null;
   created_at: string;
   sent_at: string | null;
   signature_url: string | null;

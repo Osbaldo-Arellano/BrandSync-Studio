@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 import { PaymentButtons } from "./PaymentButtons";
+import qrcode from "qrcode-generator";
 
 export default async function PayPage({
   params,
@@ -16,7 +17,7 @@ export default async function PayPage({
   const [{ data: invoice }, { data: itemRows }] = await Promise.all([
     admin
       .from("invoices")
-      .select("id, customer_name, status, total, amount_paid, estimate_id, tenant_id")
+      .select("id, customer_name, status, total, amount_paid, deposit, estimate_id, tenant_id")
       .eq("id", id)
       .single(),
     admin
@@ -27,21 +28,49 @@ export default async function PayPage({
 
   if (!invoice) notFound();
 
-  const [{ data: tenant }, depositResult] = await Promise.all([
-    admin.from("tenants").select("name").eq("id", invoice.tenant_id).single(),
-    invoice.estimate_id
-      ? admin.from("estimates").select("deposit").eq("id", invoice.estimate_id).single()
-      : Promise.resolve({ data: null }),
+  const { PAYABLE_STATUSES } = await import("@/lib/validation");
+  if (!PAYABLE_STATUSES.has(invoice.status as string)) {
+    const alreadyPaid = ["paid", "cash", "cashapp"].includes(invoice.status as string);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-sm text-center space-y-3">
+          <div className="text-4xl">{alreadyPaid ? "✓" : "✗"}</div>
+          <h1 className="text-xl font-bold text-gray-900">
+            {alreadyPaid ? "Invoice Paid" : "Invoice Unavailable"}
+          </h1>
+          <p className="text-sm text-gray-500">
+            {alreadyPaid
+              ? "This invoice has already been paid. Thank you!"
+              : "This invoice is no longer available for payment."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const [{ data: tenant }] = await Promise.all([
+    admin.from("tenants").select("name, cashapp_tag").eq("id", invoice.tenant_id).single(),
   ]);
 
-  const deposit =
-    (depositResult as { data: { deposit: number } | null } | null)?.data?.deposit ?? 0;
+  const deposit = (invoice.deposit as number) ?? 0;
 
   const tenantName = tenant?.name ?? "";
+  const cashappTag = (tenant?.cashapp_tag as string | null) ?? null;
   const total = invoice.total as number;
   const amountPaid = (invoice.amount_paid as number) ?? 0;
   const items = itemRows ?? [];
   const isPaid = invoice.status === "paid";
+
+  // Generate Cash App QR SVG server-side
+  let cashappQrSvg: string | null = null;
+  if (cashappTag) {
+    const amount = (total - amountPaid).toFixed(2);
+    const url = `https://cash.app/$${cashappTag}/${amount}`;
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    cashappQrSvg = qr.createSvgTag({ scalable: true, margin: 1 });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
@@ -145,11 +174,13 @@ export default async function PayPage({
               amountPaid={amountPaid}
               deposit={deposit}
               status={invoice.status}
+              cashappTag={cashappTag}
+              cashappQrSvg={cashappQrSvg}
             />
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400">Secured by Stripe</p>
+        {/* {!cashappTag && <p className="text-center text-xs text-gray-400">Secured by Stripe</p>} */}
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { NewEstimateForm, NewEstimateFormMobile } from "@/components/estimates";
@@ -30,13 +31,13 @@ export default async function NewEstimatePage() {
   };
 
   return (
-    <>
+    <Suspense>
       <div className="hidden md:block h-full">
         <NewEstimateForm tenant={tenantProfile} />
       </div>
       <div className="md:hidden h-full">
         <NewEstimateFormMobile tenant={tenantProfile} />
       </div>
-    </>
+    </Suspense>
   );
 }

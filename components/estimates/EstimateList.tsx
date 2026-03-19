@@ -66,14 +66,16 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
   const [filter, setFilter] = useState<EstimateStatus | "all">(initialFilter);
   const [search, setSearch] = useState("");
   const [converting, setConverting] = useState<Record<string, boolean>>({});
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [localEstimates, setLocalEstimates] = useState(estimates);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const router = useRouter();
 
   const statusCounts = FILTER_TABS.reduce<Record<string, number>>((acc, tab) => {
     acc[tab.value] = tab.value === "all"
-      ? estimates.length
-      : estimates.filter(e => e.status === tab.value).length;
+      ? localEstimates.length
+      : localEstimates.filter(e => e.status === tab.value).length;
     return acc;
   }, {});
 
@@ -92,6 +94,22 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
     };
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
+  }
+
+  async function deleteEstimate(id: string) {
+    if (!confirm("Delete this draft estimate? This cannot be undone.")) return;
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/estimates/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setLocalEstimates((prev) => prev.filter((e) => e.id !== id));
+      } else {
+        const data = await res.json();
+        alert(data.error ?? "Failed to delete estimate");
+      }
+    } finally {
+      setDeleting(null);
+    }
   }
 
   async function convertToInvoice(estimateId: string) {
@@ -113,7 +131,7 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
     }
   }
 
-  const visible = estimates.filter((est) => {
+  const visible = localEstimates.filter((est) => {
     const matchStatus = filter === "all" || est.status === filter;
     const q = search.toLowerCase();
     const matchSearch =
@@ -146,8 +164,8 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
       </div>
 
       {/* Stats bar — desktop only */}
-      {estimates.length > 0 && (() => {
-        const stats = computeStats(estimates);
+      {localEstimates.length > 0 && (() => {
+        const stats = computeStats(localEstimates);
         return (
           <div className="grid grid-cols-2 gap-2 mb-5 md:flex md:gap-3">
             {[
@@ -173,7 +191,7 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
       })()}
 
       {/* Search + filter */}
-      {estimates.length > 0 && (
+      {localEstimates.length > 0 && (
         <div className="mb-5 flex flex-col sm:flex-row gap-3">
           <input
             type="search"
@@ -200,14 +218,14 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
         </div>
       )}
 
-      {estimates.length === 0 && (
+      {localEstimates.length === 0 && (
         <div className="py-16 text-center">
           <p className="text-sm font-medium text-gray-500">No estimates yet</p>
           <p className="text-sm text-gray-400 mt-1">Click &quot;+ New Estimate&quot; to create your first one.</p>
         </div>
       )}
 
-      {estimates.length > 0 && visible.length === 0 && (
+      {localEstimates.length > 0 && visible.length === 0 && (
         <p className="text-sm text-gray-400 py-8 text-center">No estimates match your search.</p>
       )}
 
@@ -262,12 +280,29 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
                           {converting[est.id] ? "Converting…" : "Convert to Invoice"}
                         </button>
                       )}
+                      {est.status === "draft" && (
+                        <Link
+                          href={`/dashboard/estimates/${est.id}/edit`}
+                          className="rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                        >
+                          Edit
+                        </Link>
+                      )}
                       <Link
                         href={`/dashboard/estimates/${est.id}`}
                         className="rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                       >
                         View
                       </Link>
+                      {est.status === "draft" && (
+                        <button
+                          onClick={() => deleteEstimate(est.id)}
+                          disabled={deleting === est.id}
+                          className="rounded border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                        >
+                          {deleting === est.id ? "…" : "Delete"}
+                        </button>
+                      )}
                       <a
                         href={`/api/estimates/${est.id}/pdf`}
                         download
@@ -340,10 +375,10 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
       {visible.length > 0 && (
         <div className="md:hidden space-y-2">
           {paginated.map((est) => (
-            <Link
+            <div
               key={est.id}
-              href={`/dashboard/estimates/${est.id}`}
-              className="block rounded border border-gray-200 bg-white p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+              className="rounded border border-gray-200 bg-white p-4 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
+              onClick={() => router.push(`/dashboard/estimates/${est.id}`)}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -361,22 +396,37 @@ export function EstimateList({ estimates }: { estimates: Estimate[] }) {
                   {est.total.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                 </span>
               </div>
-              {est.status === "approved" && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      convertToInvoice(est.id);
-                    }}
-                    disabled={converting[est.id]}
-                    className="w-full rounded bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                  >
-                    {converting[est.id] ? "Converting…" : "Convert to Invoice"}
-                  </button>
+              {(est.status === "approved" || est.status === "draft") && (
+                <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  {est.status === "approved" && (
+                    <button
+                      onClick={() => convertToInvoice(est.id)}
+                      disabled={converting[est.id]}
+                      className="flex-1 rounded bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      {converting[est.id] ? "Converting…" : "Convert to Invoice"}
+                    </button>
+                  )}
+                  {est.status === "draft" && (
+                    <Link
+                      href={`/dashboard/estimates/${est.id}/edit`}
+                      className="flex-1 rounded border border-gray-200 px-3 py-2 text-xs font-medium text-center text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      Edit
+                    </Link>
+                  )}
+                  {est.status === "draft" && (
+                    <button
+                      onClick={() => deleteEstimate(est.id)}
+                      disabled={deleting === est.id}
+                      className="flex-1 rounded border border-red-200 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                    >
+                      {deleting === est.id ? "Deleting…" : "Delete"}
+                    </button>
+                  )}
                 </div>
               )}
-            </Link>
+            </div>
           ))}
         </div>
       )}

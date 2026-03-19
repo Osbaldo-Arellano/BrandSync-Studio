@@ -1,4 +1,5 @@
 export { DashboardHeader } from "./DashboardHeader";
+export { DashboardSidebar } from "./DashboardSidebar";
 export { BrandPreview } from "./BrandPreview";
 export { AssetSelector } from "./AssetSelector";
 export { AssetTemplateGrid } from "./AssetTemplateGrid";
@@ -9,3 +10,5 @@ export { BrandingCard } from "./BrandingCard";
 export { PhotoGallery } from "./PhotoGallery";
 export { BrandAssetsSection } from "./BrandAssetsSection";
 export { SettingsShell } from "./SettingsShell";
+export { CustomerList } from "./CustomerList";
+export { CustomerDetail } from "./CustomerDetail";

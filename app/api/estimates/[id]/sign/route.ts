@@ -113,7 +113,6 @@ export async function POST(
       status: "sent",
       total: row.total ?? 0,
       amount_paid: 0,
-      deposit: row.deposit ?? 0,
       discount_amount: row.discount_amount ?? 0,
       tax_rate: row.tax_rate ?? 0,
       tax_amount: row.tax_amount ?? 0,

@@ -17,7 +17,7 @@ export default async function PayPage({
   const [{ data: invoice }, { data: itemRows }] = await Promise.all([
     admin
       .from("invoices")
-      .select("id, customer_name, status, total, amount_paid, deposit, estimate_id, tenant_id")
+      .select("id, customer_name, status, total, amount_paid, estimate_id, tenant_id")
       .eq("id", id)
       .single(),
     admin
@@ -48,11 +48,14 @@ export default async function PayPage({
     );
   }
 
-  const [{ data: tenant }] = await Promise.all([
+  const [{ data: tenant }, depositResult] = await Promise.all([
     admin.from("tenants").select("name, cashapp_tag").eq("id", invoice.tenant_id).single(),
+    invoice.estimate_id
+      ? admin.from("estimates").select("deposit").eq("id", invoice.estimate_id).single()
+      : Promise.resolve({ data: null }),
   ]);
 
-  const deposit = (invoice.deposit as number) ?? 0;
+  const deposit = (depositResult as { data: { deposit: number } | null } | null)?.data?.deposit ?? 0;
 
   const tenantName = tenant?.name ?? "";
   const cashappTag = (tenant?.cashapp_tag as string | null) ?? null;

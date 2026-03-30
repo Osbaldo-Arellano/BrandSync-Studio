@@ -96,7 +96,6 @@ export function NewInvoiceForm() {
   const [customerAddress, setCustomerAddress] = useState(searchParams.get("customerAddress") ?? "");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState(searchParams.get("customerPhone") ?? "");
-  const [salesperson, setSalesperson] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [allCustomers, setAllCustomers] = useState<CustomerSuggestion[]>([]);
@@ -165,7 +164,6 @@ export function NewInvoiceForm() {
           customerAddress: customerAddress || null,
           customerEmail: customerEmail || null,
           customerPhone: customerPhone || null,
-          salesperson: salesperson || null,
           paymentTerms: paymentTerms || null,
           items,
           total,
@@ -252,7 +250,7 @@ export function NewInvoiceForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
                 Address
@@ -288,21 +286,6 @@ export function NewInvoiceForm() {
                 className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
-                Salesperson
-              </label>
-              <input
-                type="text"
-                value={salesperson}
-                onChange={(e) => setSalesperson(e.target.value)}
-                placeholder="Name"
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
                 Payment terms
@@ -317,11 +300,80 @@ export function NewInvoiceForm() {
             </div>
           </div>
 
+
           {/* Line items */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Line Items</p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse min-w-[480px]">
+
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-3">
+              {items.map((item, idx) => (
+                <div key={item.id} className="rounded border border-gray-200 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-gray-500">Item {idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      disabled={items.length === 1}
+                      className="text-gray-300 hover:text-red-500 disabled:opacity-20 p-1"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={item.description}
+                    onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                    placeholder="Service description"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Qty</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })}
+                        className="w-full rounded border border-gray-300 px-2 py-2 text-sm text-gray-900 text-center focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Unit Price</label>
+                      <USDInput
+                        value={item.unit_price}
+                        onChange={(v) => updateItem(item.id, { unit_price: v })}
+                        placeholder="$0.00"
+                        className="w-full rounded border border-gray-300 px-2 py-2 text-sm text-gray-900 text-right focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Total</label>
+                      <USDInput
+                        value={item.line_total}
+                        onChange={(v) => updateItem(item.id, { line_total: v })}
+                        placeholder="$0.00"
+                        className="w-full rounded border border-gray-300 px-2 py-2 text-sm text-gray-900 text-right focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setItems((prev) => [...prev, newLineItem()])}
+                className="w-full rounded border border-dashed border-gray-300 py-2.5 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+              >
+                + Add line item
+              </button>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="border border-gray-200 px-3 py-2 text-left font-medium text-gray-600 w-16">Qty</th>
@@ -397,7 +449,7 @@ export function NewInvoiceForm() {
 
           {/* Totals */}
           <div className="flex justify-end">
-            <div className="w-64 space-y-2">
+            <div className="w-full sm:w-64 space-y-2">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Subtotal</span>
                 <span>{subtotal.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>

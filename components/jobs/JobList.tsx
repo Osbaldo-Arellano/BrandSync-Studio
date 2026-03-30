@@ -65,7 +65,7 @@ function NewJobForm({
   initialCustomerId,
 }: {
   customers: Customer[];
-  onSave: (data: { title: string; customerId: string; address: string; notes: string }) => void;
+  onSave: (data: { title: string; customerId: string; customerName: string; address: string; notes: string }) => void;
   onCancel: () => void;
   saving: boolean;
   initialCustomerId?: string;
@@ -129,7 +129,7 @@ function NewJobForm({
         <button type="button" onClick={onCancel} className="rounded border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
         <button
           type="button"
-          onClick={() => { if (title.trim()) onSave({ title, customerId, address, notes }); }}
+          onClick={() => { if (title.trim()) onSave({ title, customerId, customerName: custSearch.trim(), address, notes }); }}
           disabled={saving || !title.trim()}
           className="rounded bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
@@ -168,7 +168,7 @@ export function JobList({ jobs: initial, customers }: { jobs: Job[]; customers: 
     return matchStatus && matchSearch;
   });
 
-  async function handleCreate(data: { title: string; customerId: string; address: string; notes: string }) {
+  async function handleCreate(data: { title: string; customerId: string; customerName: string; address: string; notes: string }) {
     setSaving(true);
     try {
       const res = await fetch("/api/jobs", {

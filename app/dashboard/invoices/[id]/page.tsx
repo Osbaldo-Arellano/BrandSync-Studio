@@ -52,7 +52,6 @@ export default async function InvoiceDetailPage({
     customer_email:   (row.customer_email as string | null) ?? null,
     customer_phone:   (row.customer_phone as string | null) ?? null,
     payment_terms:    (row.payment_terms as string | null) ?? null,
-    salesperson:      (row.salesperson as string | null) ?? null,
     delivery_method:  (row.delivery_method as "email" | "link" | "print" | null) ?? null,
     status:           row.status,
     total:            (row.total as number) ?? 0,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useModules } from "@/components/dashboard/ModulesProvider";
 
 type Period = "7d" | "30d" | "90d" | "ytd" | "all";
 
@@ -139,6 +140,7 @@ export function DashboardHome({
   tenantName: string;
 }) {
   const router = useRouter();
+  const modules = useModules();
   const [period, setPeriod] = useState<Period>("all");
 
   // Period-filtered slices (for KPIs + recent tables)
@@ -211,27 +213,33 @@ export function DashboardHome({
           <p className="text-sm text-gray-500 mt-0.5">{today}</p>
         </div>
         <div className="flex gap-2 flex-wrap justify-end sm:justify-end">
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as Period)}
-            className="rounded border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none"
-          >
-            {(Object.entries(PERIOD_LABELS) as [Period, string][]).map(([v, l]) => (
-              <option key={v} value={v}>{l}</option>
-            ))}
-          </select>
-          <Link
-            href="/dashboard/estimates/new"
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
-          >
-            + New Estimate
-          </Link>
-          <Link
-            href="/dashboard/print"
-            className="rounded border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
-          >
-            Order Prints
-          </Link>
+          {(modules.invoices || modules.jobs) && (
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as Period)}
+              className="rounded border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none"
+            >
+              {(Object.entries(PERIOD_LABELS) as [Period, string][]).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          )}
+          {modules.jobs && (
+            <Link
+              href="/dashboard/estimates/new"
+              className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors whitespace-nowrap"
+            >
+              + New Estimate
+            </Link>
+          )}
+          {modules.print && (
+            <Link
+              href="/dashboard/print"
+              className="rounded border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
+            >
+              Order Prints
+            </Link>
+          )}
         </div>
       </div>
 
@@ -250,7 +258,7 @@ export function DashboardHome({
                 {(invSent > 0 || paidThisWeek > 0) && <span className="text-gray-200 select-none">|</span>}
               </>
             )}
-            {invSent > 0 && (
+            {modules.invoices && invSent > 0 && (
               <>
                 <span className="text-sm text-gray-600">
                   <span className="font-semibold text-gray-900">{invSent}</span> invoice{invSent !== 1 ? "s" : ""} sent
@@ -258,7 +266,7 @@ export function DashboardHome({
                 {paidThisWeek > 0 && <span className="text-gray-200 select-none">|</span>}
               </>
             )}
-            {paidThisWeek > 0 && (
+            {modules.invoices && paidThisWeek > 0 && (
               <span className="text-sm text-gray-600">
                 <span className="font-semibold text-emerald-600">{fmt(paidThisWeek)}</span> paid this week
               </span>
@@ -268,32 +276,42 @@ export function DashboardHome({
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          label="Revenue"
-          value={fmt(revenue)}
-          sub={`${invPaid} paid invoice${invPaid !== 1 ? "s" : ""}`}
-          accentClass="border-t-emerald-500"
-        />
-        <KpiCard
-          label="Outstanding"
-          value={fmt(outstanding)}
-          sub={`${invSent} awaiting payment`}
-          accentClass="border-t-blue-500"
-        />
-        <KpiCard
-          label="Pipeline"
-          value={fmt(pipeline)}
-          sub={`${estDraft + estSent + estApproved} active estimate${estDraft + estSent + estApproved !== 1 ? "s" : ""}`}
-          accentClass="border-t-amber-400"
-        />
-        <KpiCard
-          label="Overdue"
-          value={fmt(overdue)}
-          sub={`${invOverdue} overdue invoice${invOverdue !== 1 ? "s" : ""}`}
-          accentClass="border-t-red-400"
-        />
-      </div>
+      {(modules.invoices || modules.jobs) && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {modules.invoices && (
+            <KpiCard
+              label="Revenue"
+              value={fmt(revenue)}
+              sub={`${invPaid} paid invoice${invPaid !== 1 ? "s" : ""}`}
+              accentClass="border-t-emerald-500"
+            />
+          )}
+          {modules.invoices && (
+            <KpiCard
+              label="Outstanding"
+              value={fmt(outstanding)}
+              sub={`${invSent} awaiting payment`}
+              accentClass="border-t-blue-500"
+            />
+          )}
+          {modules.jobs && (
+            <KpiCard
+              label="Pipeline"
+              value={fmt(pipeline)}
+              sub={`${estDraft + estSent + estApproved} active estimate${estDraft + estSent + estApproved !== 1 ? "s" : ""}`}
+              accentClass="border-t-amber-400"
+            />
+          )}
+          {modules.invoices && (
+            <KpiCard
+              label="Overdue"
+              value={fmt(overdue)}
+              sub={`${invOverdue} overdue invoice${invOverdue !== 1 ? "s" : ""}`}
+              accentClass="border-t-red-400"
+            />
+          )}
+        </div>
+      )}
 
       {/* Needs attention */}
       {hasAttention && (
@@ -331,7 +349,7 @@ export function DashboardHome({
                 </Link>
               </div>
             )}
-            {overdueInvoices.length > 0 && (
+            {modules.invoices && overdueInvoices.length > 0 && (
               <div className="flex flex-col items-start gap-1.5">
                 <Link
                   href="/dashboard/invoices"
@@ -349,10 +367,11 @@ export function DashboardHome({
       )}
 
       {/* Status breakdown */}
+      {(modules.invoices || modules.jobs) && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Invoices */}
-        <div className="bg-white border border-gray-200 rounded px-5 py-3">
+        {modules.invoices && <div className="bg-white border border-gray-200 rounded px-5 py-3">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Invoices</p>
             <Link href="/dashboard/invoices" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
@@ -371,10 +390,10 @@ export function DashboardHome({
               ? `${Math.round((invPaid / invTotal) * 100)}%`
               : "—"}
           </p>
-        </div>
+        </div>}
 
         {/* Jobs */}
-        <div className="bg-white border border-gray-200 rounded px-5 py-3">
+        {modules.jobs && <div className="bg-white border border-gray-200 rounded px-5 py-3">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Jobs</p>
             <Link href="/dashboard/jobs" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
@@ -389,14 +408,16 @@ export function DashboardHome({
           <p className="text-xs text-gray-400 mt-3 pt-2 border-t border-gray-100">
             {jobTotal} total · {jobActive} active
           </p>
-        </div>
+        </div>}
       </div>
+      )}
 
       {/* Recent activity */}
+      {(modules.invoices || modules.jobs) && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Recent invoices */}
-        <div>
+        {modules.invoices && <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-900">Recent Invoices</h2>
             <Link href="/dashboard/invoices" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
@@ -439,10 +460,10 @@ export function DashboardHome({
               </table>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Recent jobs */}
-        <div>
+        {modules.jobs && <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-900">Recent Jobs</h2>
             <Link href="/dashboard/jobs" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
@@ -484,8 +505,9 @@ export function DashboardHome({
               </table>
             </div>
           )}
-        </div>
+        </div>}
       </div>
+      )}
 
       {/* Print / brand shortcuts */}
       <div className="bg-white border border-gray-200 rounded p-5">

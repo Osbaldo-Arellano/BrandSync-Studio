@@ -24,6 +24,9 @@ export async function POST(request: Request) {
   const { name, address, phone, email } = await request.json();
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
+  // Ensure tenant row exists (guard against users created before auto-create trigger)
+  await supabase.from("tenants").upsert({ id: user.id, name: "" }, { onConflict: "id", ignoreDuplicates: true });
+
   // Dedup: return existing customer if name matches (case-insensitive)
   const { data: existing } = await supabase
     .from("customers")
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase
     .from("customers")
-    .insert({ tenant_id: user.id, name: name.trim(), address: address || null, phone: phone || null, email: email || null })
+    .insert({ tenant_id: user.id, name: name.trim(), address: address?.trim() || null, phone: phone?.trim() || null, email: email?.trim() || null })
     .select()
     .single();
 

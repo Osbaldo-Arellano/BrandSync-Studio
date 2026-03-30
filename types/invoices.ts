@@ -30,7 +30,6 @@ export interface Invoice {
   delivery_method?: "email" | "link" | "print" | null;
   customer_phone?: string | null;
   payment_terms?: string | null;
-  salesperson?: string | null;
   created_at: string;
   items: InvoiceItem[];
 }

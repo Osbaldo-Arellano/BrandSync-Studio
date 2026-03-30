@@ -24,9 +24,8 @@ interface InvoiceData {
   due_date?: string | null;
   notes?: string;
   created_at: string;
-  items: InvoiceItem[];
-  salesperson?: string | null;
   payment_terms?: string | null;
+  items: InvoiceItem[];
 }
 
 function usd(n: number) {
@@ -178,18 +177,16 @@ ${paidStamp}
   ${invoice.customer_phone ? `<p style="font-size:12px;color:#6b7280;margin-top:2px;">${invoice.customer_phone}</p>` : ""}
 </div>
 
-${(invoice.salesperson || invoice.payment_terms) ? `
+${invoice.payment_terms ? `
 <table style="margin-bottom:24px;">
   <thead>
     <tr style="background:#f3f4f6;">
-      ${invoice.salesperson ? `<th style="border:1px solid #d1d5db;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;">Salesperson</th>` : ""}
-      ${invoice.payment_terms ? `<th style="border:1px solid #d1d5db;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;">Payment Terms</th>` : ""}
+      <th style="border:1px solid #d1d5db;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;">Payment Terms</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      ${invoice.salesperson ? `<td style="border:1px solid #d1d5db;padding:8px 10px;">${invoice.salesperson}</td>` : ""}
-      ${invoice.payment_terms ? `<td style="border:1px solid #d1d5db;padding:8px 10px;">${invoice.payment_terms}</td>` : ""}
+      <td style="border:1px solid #d1d5db;padding:8px 10px;">${invoice.payment_terms}</td>
     </tr>
   </tbody>
 </table>` : ""}

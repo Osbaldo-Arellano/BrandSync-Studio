@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { TenantProfile } from "@/types/tenant";
+import { useModules } from "@/components/dashboard/ModulesProvider";
 
 interface Props {
   initial: TenantProfile;
@@ -43,6 +44,7 @@ const inp =
   "w-full rounded border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 focus:outline-none transition-colors";
 
 export function TenantSettingsForm({ initial }: Props) {
+  const modules = useModules();
   const [form, setForm] = useState<TenantProfile>(initial);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -189,9 +191,9 @@ export function TenantSettingsForm({ initial }: Props) {
           />
         </div>
       </Row>
-      {/* Payments */}
-      <SectionLabel>Payments</SectionLabel>
-      <Row
+      {/* Payments — only relevant when invoices are enabled */}
+      {modules.invoices && <SectionLabel>Payments</SectionLabel>}
+      {modules.invoices && <Row
         label="Cash App $tag"
         hint="Your $cashtag — customers will see a QR code to pay you directly via Cash App."
       >
@@ -205,7 +207,7 @@ export function TenantSettingsForm({ initial }: Props) {
             className={inp}
           />
         </div>
-      </Row>
+      </Row>}
 
       {/* Footer */}
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}

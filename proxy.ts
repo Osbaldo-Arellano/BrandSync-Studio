@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
 
   // Redirect authenticated users away from login
   if (pathname === "/login" && user) {
-    return NextResponse.redirect(new URL("/dashboard/print", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

@@ -47,7 +47,6 @@ export async function GET(
     customer_address: (row.customer_address as string | null) ?? null,
     customer_phone:   (row.customer_phone as string | null) ?? null,
     delivery_method:  (row.delivery_method as string | null) ?? null,
-    salesperson:      (row.salesperson as string | null) ?? null,
     payment_terms:    (row.payment_terms as string | null) ?? null,
     status:           row.status as string,
     total:            (row.total as number) ?? 0,

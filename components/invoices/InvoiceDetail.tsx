@@ -23,7 +23,6 @@ interface InvoiceDetailData {
   customer_email?: string | null;
   customer_phone?: string | null;
   payment_terms?: string | null;
-  salesperson?: string | null;
   status: InvoiceStatus;
   total: number;
   amount_paid?: number;

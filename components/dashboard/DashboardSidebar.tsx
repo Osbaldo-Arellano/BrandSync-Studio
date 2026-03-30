@@ -4,19 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard";
-
-const topLinks = [
-  { href: "/dashboard", label: "Dashboard", exact: true },
-  { href: "/dashboard/customers", label: "Customers" },
-];
-
-const bottomLinks = [
-  { href: "/dashboard/invoices", label: "Invoices" },
-  { href: "/dashboard/print", label: "Order Prints" },
-  { href: "/dashboard/settings", label: "Settings" },
-];
-
-const jobsChildren = [{ href: "/dashboard/estimates", label: "Estimates" }];
+import { useModules } from "@/components/dashboard/ModulesProvider";
 
 export function DashboardSidebar({
   logoUrl,
@@ -26,6 +14,7 @@ export function DashboardSidebar({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const modules = useModules();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const jobsActive =
@@ -113,71 +102,62 @@ export function DashboardSidebar({
         </div>
 
         <nav className="p-2 space-y-0.5 flex-1 overflow-y-auto pt-3">
-          {topLinks.map((link) => (
-            <NavLink key={link.href} {...link} />
-          ))}
+          {modules.dashboard && <NavLink href="/dashboard" label="Dashboard" exact />}
 
-          {/* Jobs — expandable */}
-          <div>
-            <div className="flex items-center">
-              <Link
-                href="/dashboard/jobs"
-                onClick={() => setSidebarOpen(false)}
-                className={`flex-1 flex items-center rounded-l px-3 py-2 text-sm font-medium transition-colors ${
-                  pathname.startsWith("/dashboard/jobs")
-                    ? "bg-blue-50 text-blue-700 border-l-2 border-blue-600 pl-[10px]"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent pl-[10px]"
-                }`}
-              >
-                Jobs
-              </Link>
-              <button
-                onClick={() => setJobsExpanded((v) => !v)}
-                className="px-2 py-2 text-gray-400 hover:text-gray-600 transition-colors"
-                aria-label={jobsExpanded ? "Collapse" : "Expand"}
-              >
-                <svg
-                  className={`h-3.5 w-3.5 transition-transform duration-150 ${jobsExpanded ? "rotate-90" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+          {/* Jobs — expandable, only when enabled */}
+          {modules.jobs && (
+            <div>
+              <div className="flex items-center">
+                <Link
+                  href="/dashboard/jobs"
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex-1 flex items-center rounded-l px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname.startsWith("/dashboard/jobs")
+                      ? "bg-blue-50 text-blue-700 border-l-2 border-blue-600 pl-[10px]"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent pl-[10px]"
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {jobsExpanded && (
-              <div className="ml-3 mt-0.5 space-y-0.5 border-l border-gray-200 pl-2">
-                {jobsChildren.map((child) => {
-                  const active = pathname.startsWith(child.href);
-                  return (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center rounded px-3 py-1.5 text-sm transition-colors ${
-                        active
-                          ? "bg-blue-50 text-blue-700 font-medium"
-                          : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                      }`}
-                    >
-                      {child.label}
-                    </Link>
-                  );
-                })}
+                  Jobs
+                </Link>
+                <button
+                  onClick={() => setJobsExpanded((v) => !v)}
+                  className="px-2 py-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={jobsExpanded ? "Collapse" : "Expand"}
+                >
+                  <svg
+                    className={`h-3.5 w-3.5 transition-transform duration-150 ${jobsExpanded ? "rotate-90" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
-            )}
-          </div>
+              {jobsExpanded && (
+                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-gray-200 pl-2">
+                  <Link
+                    href="/dashboard/estimates"
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center rounded px-3 py-1.5 text-sm transition-colors ${
+                      pathname.startsWith("/dashboard/estimates")
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                    }`}
+                  >
+                    Estimates
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
-          {bottomLinks.map((link) => (
-            <NavLink key={link.href} {...link} />
-          ))}
+          {modules.customers && <NavLink href="/dashboard/customers" label="Customers" />}
+          {modules.emailMarketing && <NavLink href="/dashboard/email-marketing" label="Email Marketing" />}
+
+          {modules.invoices && <NavLink href="/dashboard/invoices" label="Invoices" />}
+          {modules.print && <NavLink href="/dashboard/print" label="Order Prints" />}
+          {modules.settings && <NavLink href="/dashboard/settings" label="Settings" />}
         </nav>
       </aside>
 

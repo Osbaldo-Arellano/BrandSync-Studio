@@ -15,7 +15,7 @@ export default function PrintPage() {
   const [brand, setBrand] = useState<BrandState>(defaultBrand);
   const [loading, setLoading] = useState(true);
 
-  const [selectedAssetId, setSelectedAssetId] = useState(ASSET_TYPES[0].id);
+  const [selectedAssetId, setSelectedAssetId] = useState("eddm-mailer");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorAsset, setEditorAsset] = useState<AssetTypeConfig>(ASSET_TYPES[0]);
   const [editorTemplate, setEditorTemplate] = useState<AssetTemplate>(ASSET_TYPES[0].templates[0]);

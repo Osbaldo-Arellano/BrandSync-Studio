@@ -509,7 +509,7 @@ export function DashboardHome({
       </div>
       )}
 
-      {/* Print / brand shortcuts */}
+      {/* Print / brand shortcuts
       <div className="bg-white border border-gray-200 rounded p-5">
         <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-4">Brand & Print</p>
         <div className="flex flex-wrap gap-3">
@@ -551,7 +551,7 @@ export function DashboardHome({
             <span className="text-xs font-medium text-gray-700 leading-tight">Brand Assets</span>
           </Link>
         </div>
-      </div>
+      </div> */}
 
     </div>
   );

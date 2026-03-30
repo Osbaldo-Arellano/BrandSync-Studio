@@ -24,17 +24,29 @@ export function SignaturePanel({ estimateId, tenant }: Props) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    let lastWidth = canvas.offsetWidth;
+
     function resize() {
       if (!canvas) return;
+      // Ignore height-only changes (mobile keyboard open/close)
+      if (canvas.offsetWidth === lastWidth) return;
+      lastWidth = canvas.offsetWidth;
+
+      const data = padRef.current?.toData();
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
       canvas.width = canvas.offsetWidth * ratio;
       canvas.height = canvas.offsetHeight * ratio;
       canvas.getContext("2d")?.scale(ratio, ratio);
       padRef.current?.clear();
+      if (data?.length) padRef.current?.fromData(data);
     }
 
     padRef.current = new SignaturePad(canvas, { backgroundColor: "rgb(255,255,255)" });
-    resize();
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    canvas.getContext("2d")?.scale(ratio, ratio);
+
     window.addEventListener("resize", resize);
     return () => {
       window.removeEventListener("resize", resize);

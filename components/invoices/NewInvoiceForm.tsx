@@ -138,7 +138,10 @@ export function NewInvoiceForm() {
       prev.map((item) => {
         if (item.id !== id) return item;
         const next = { ...item, ...patch };
-        if (("quantity" in patch || "unit_price" in patch) && !("line_total" in patch)) {
+        if ("line_total" in patch && !("unit_price" in patch) && !("quantity" in patch)) {
+          // User edited total directly — back-calculate unit_price
+          next.unit_price = next.quantity > 0 ? next.line_total / next.quantity : next.line_total;
+        } else if ("quantity" in patch || "unit_price" in patch) {
           next.line_total = next.quantity * next.unit_price;
         }
         return next;

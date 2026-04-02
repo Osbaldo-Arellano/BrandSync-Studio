@@ -10,4 +10,4 @@ export function createTransport() {
   });
 }
 
-export const FROM = `BrandSync <${process.env.SMTP_USER}>`;
+export const FROM = `Hustle Runner <${process.env.SMTP_USER}>`;

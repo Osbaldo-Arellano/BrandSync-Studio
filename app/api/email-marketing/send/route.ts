@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   const results = await Promise.allSettled(
     recipients.map((r) =>
       transporter.sendMail({
-        from: `"${process.env.SMTP_FROM_NAME ?? "BrandSync"}" <${process.env.SMTP_FROM!}>`,
+        from: `"${process.env.SMTP_FROM_NAME ?? "HustleRunner"}" <${process.env.SMTP_FROM!}>`,
         to: `"${r.name}" <${r.email}>`,
         subject,
         text: body,

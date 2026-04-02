@@ -40,7 +40,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm rounded border border-gray-200 bg-white p-8 shadow-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">BrandSync</h1>
+          <h1 className="text-2xl font-bold text-gray-900">HustleRunner</h1>
           <p className="mt-1 text-sm text-gray-500">
             {mode === "login" ? "Sign in to your account" : "Create a new account"}
           </p>

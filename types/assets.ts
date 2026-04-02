@@ -119,6 +119,28 @@ export const ASSET_TYPES: AssetTypeConfig[] = [
       },
     ],
   },
+  {
+    id: "business-card-v",
+    label: "Business Cards (Vertical)",
+    description: "Portrait 2\" × 3.5\"",
+    width: "2in",
+    height: "3.5in",
+    previewWidth: 192,   // 2 * 96
+    previewHeight: 336,  // 3.5 * 96
+    aspect: "2/3.5",
+    templates: [
+      { id: "light",      name: "English — Front", description: "White with amber blocks" },
+      { id: "light-back", name: "English — Back",  description: "QR + review link" },
+    ],
+    fields: [
+      { key: "name",    label: "Name",    placeholder: "John Smith",           required: true },
+      { key: "title",   label: "Title",   placeholder: "Project Manager" },
+      { key: "email",   label: "Email",   placeholder: "contact@company.com",  type: "email" },
+      { key: "phone",   label: "Phone",   placeholder: "+1 (555) 123-4567",    type: "tel" },
+      { key: "tagline", label: "Tagline", placeholder: "Your company tagline", readonly: true, hint: "Edit in Settings → Company Info" },
+      { key: "website", label: "Website / QR Code URL", placeholder: "https://yourcompany.com", readonly: true, hint: "Edit in Settings → Company Info" },
+    ],
+  },
 ];
 
 export function getAssetType(id: string): AssetTypeConfig | undefined {

@@ -1,0 +1,153 @@
+<!--
+  TEMPLATE: business-card-v / light  (FRONT)
+  CLIENT:   Flawless Roofing and Construction
+  SIZE:     2in × 3.5in  (portrait)
+  TOKENS:   {{logo}} {{name}} {{title}} {{phone}} {{email}} {{website}} {{tagline}}
+
+  LOCAL PREVIEW: open in browser.
+  DB INSERT:     strip the <script> block, insert the rest into html_body.
+-->
+<script>
+const PREVIEW = {
+  logo:    "https://knhgoaphmtewjhtvglpe.supabase.co/storage/v1/object/public/logos/FLAWLESS_ROOFING_LOGO-removebg-preview.png",
+  name:    "Rene Morales",
+  title:   "Owner / Operator",
+  phone:   "(971) 289-1360",
+  email:   "renemora94@gmail.com",
+  website: "FlawlessRoofings.com",
+  tagline: "Licensed, Bonded, Insured",
+};
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.innerHTML = document.body.innerHTML
+    .replace(/\{\{(\w+)\}\}/g, (_, k) => PREVIEW[k] ?? "");
+});
+</script>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: 2in 3.5in; margin: 0; }
+  html, body {
+    width: 2in; height: 3.5in;
+    overflow: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .card {
+    width: 2in; height: 3.5in;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 14px 12px;
+    gap: 0;
+  }
+
+  /* ── Logo ── */
+  .logo-wrap { margin-bottom: 14px; }
+  .logo {
+    height: 36px; width: auto; max-width: 160px;
+    object-fit: contain; object-position: left;
+  }
+
+  /* ── Name ── */
+  .name-wrap { margin-bottom: 5px; }
+  .name {
+    font-size: 22px;
+    font-weight: 900;
+    color: #111;
+    letter-spacing: -0.03em;
+    line-height: 1.0;
+    text-transform: uppercase;
+  }
+
+  /* ── Title + tagline row ── */
+  .subtitle {
+    font-size: 7px;
+    font-weight: 600;
+    color: #C97B1A;
+    letter-spacing: 0.04em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .subtitle-dot {
+    width: 3px; height: 3px;
+    background: #C97B1A;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Contact blocks ── */
+  .blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+  }
+
+  .block {
+    background: #C97B1A;
+    border-radius: 5px;
+    padding: 7px 11px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 10px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+
+  .ccb {
+    font-size: 5.5px;
+    color: #bbb;
+    text-align: right;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo-wrap">
+    <img class="logo" src="{{logo}}" alt="" />
+  </div>
+
+  <div class="name-wrap">
+    <div class="name">{{name}}</div>
+  </div>
+
+  <div class="subtitle">
+    <span>{{title}}</span>
+    <span class="subtitle-dot"></span>
+    <span>{{tagline}}</span>
+  </div>
+
+  <div class="blocks">
+    <div class="block">{{phone}}</div>
+    <div class="block">{{email}}</div>
+    <div class="block">{{website}}</div>
+  </div>
+
+  <div class="footer">
+    <div class="ccb">CCB# 225649</div>
+  </div>
+</div>
+</body>
+</html>

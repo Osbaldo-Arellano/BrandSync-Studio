@@ -10,27 +10,49 @@ import {
   AssetTemplateGrid,
   AssetEditor,
 } from "@/components/dashboard";
+import type { AssetTemplateRow } from "@/app/api/asset-templates/route";
+
+type TemplateMap = Record<string, Record<string, string>>;
 
 export default function PrintPage() {
   const [brand, setBrand] = useState<BrandState>(defaultBrand);
   const [loading, setLoading] = useState(true);
+  const [templateMap, setTemplateMap] = useState<TemplateMap>({});
 
-  const [selectedAssetId, setSelectedAssetId] = useState("eddm-mailer");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorAsset, setEditorAsset] = useState<AssetTypeConfig>(ASSET_TYPES[0]);
   const [editorTemplate, setEditorTemplate] = useState<AssetTemplate>(ASSET_TYPES[0].templates[0]);
+  const [editorTemplateBody, setEditorTemplateBody] = useState("");
 
-  const selectedAsset = ASSET_TYPES.find((a) => a.id === selectedAssetId) ?? ASSET_TYPES[0];
+  const availableAssets: AssetTypeConfig[] = ASSET_TYPES
+    .filter((a) => templateMap[a.id])
+    .map((a) => ({
+      ...a,
+      templates: a.templates.filter((t) => templateMap[a.id]?.[t.id]),
+    }));
+
+  const [selectedAssetId, setSelectedAssetId] = useState<string>("");
+
+  useEffect(() => {
+    if (availableAssets.length > 0 && !availableAssets.find((a) => a.id === selectedAssetId)) {
+      setSelectedAssetId(availableAssets[0].id);
+    }
+  }, [availableAssets, selectedAssetId]);
+
+  const selectedAsset =
+    availableAssets.find((a) => a.id === selectedAssetId) ?? availableAssets[0];
 
   useEffect(() => {
     Promise.all([
       fetch("/api/brand").then((r) => (r.ok ? r.json() : null)),
       fetch("/api/tenant").then((r) => (r.ok ? r.json() : null)),
-    ]).then(([brandData, tenantData]) => {
+      fetch("/api/asset-templates").then((r) =>
+        r.ok ? (r.json() as Promise<AssetTemplateRow[]>) : Promise.resolve([])
+      ),
+    ]).then(([brandData, tenantData, templateRows]) => {
       setBrand((prev) => {
         let next = { ...prev };
 
-        // Logo, icon, about_us, social_links — from brands table
         if (brandData) {
           next = {
             ...next,
@@ -47,7 +69,6 @@ export default function PrintPage() {
           };
         }
 
-        // Name, tagline, phone, email, website, address — from tenants table (authoritative)
         if (tenantData) {
           next = {
             ...next,
@@ -68,12 +89,21 @@ export default function PrintPage() {
 
         return next;
       });
+
+      const map: TemplateMap = {};
+      for (const row of (templateRows as AssetTemplateRow[])) {
+        if (!map[row.asset_type_id]) map[row.asset_type_id] = {};
+        map[row.asset_type_id][row.template_id] = row.html_body;
+      }
+      setTemplateMap(map);
     }).finally(() => setLoading(false));
   }, []);
 
   const openEditor = (asset: AssetTypeConfig, template: AssetTemplate) => {
+    const body = templateMap[asset.id]?.[template.id] ?? "";
     setEditorAsset(asset);
     setEditorTemplate(template);
+    setEditorTemplateBody(body);
     setEditorOpen(true);
   };
 
@@ -82,6 +112,17 @@ export default function PrintPage() {
       <div className="flex flex-1 items-center justify-center">
         <div className="text-gray-500">Loading...</div>
       </div>
+    );
+  }
+
+  if (availableAssets.length === 0) {
+    return (
+      <main className="mx-auto w-full max-w-6xl px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Print Assets</h1>
+          <p className="mt-1 text-gray-500">No print templates configured for your account.</p>
+        </div>
+      </main>
     );
   }
 
@@ -94,32 +135,12 @@ export default function PrintPage() {
         </div>
 
         <div className="space-y-4">
-          <AssetSelector selected={selectedAssetId} onChange={setSelectedAssetId} />
-          {selectedAssetId === "eddm-mailer" ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">EDDM Mailer</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Every Door Direct Mail — print-ready PDF</p>
-                </div>
-                <a
-                  href="/eddm_mailer.pdf"
-                  download="eddm_mailer.pdf"
-                  className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
-                >
-                  Download PDF
-                </a>
-              </div>
-              <div className="w-full rounded border border-gray-200 overflow-hidden bg-gray-50" style={{ height: "700px" }}>
-                <iframe
-                  src="/eddm_mailer.pdf"
-                  title="EDDM Mailer"
-                  className="w-full h-full"
-                  style={{ border: "none" }}
-                />
-              </div>
-            </div>
-          ) : (
+          <AssetSelector
+            assetTypes={availableAssets}
+            selected={selectedAssetId}
+            onChange={setSelectedAssetId}
+          />
+          {selectedAsset && (
             <AssetTemplateGrid
               asset={selectedAsset}
               onSelect={(tpl) => openEditor(selectedAsset, tpl)}
@@ -133,6 +154,7 @@ export default function PrintPage() {
         onClose={() => setEditorOpen(false)}
         asset={editorAsset}
         template={editorTemplate}
+        templateBody={editorTemplateBody}
         brand={brand}
       />
     </>

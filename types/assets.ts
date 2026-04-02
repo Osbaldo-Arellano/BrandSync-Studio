@@ -46,8 +46,9 @@ export const ASSET_TYPES: AssetTypeConfig[] = [
     previewHeight: 192,  // 2 * 96
     aspect: "1.75/1",
     templates: [
-      { id: "light", name: "English", description: "Clean light background" },
-      { id: "light-es", name: "Spanish", description: "Light background, Spanish" },
+      { id: "light",      name: "English — Front", description: "Dark premium front" },
+      { id: "light-back", name: "English — Back",  description: "Services + QR back" },
+      { id: "light-es",   name: "Spanish",         description: "Light background, Spanish" },
     ],
     fields: [
       { key: "name", label: "Name", placeholder: "John Smith", required: true },

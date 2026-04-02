@@ -3,7 +3,9 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 export interface AssetTemplateRow {
   asset_type_id: string;
   template_id: string;
-  html_body: string;
+  type: "template" | "pdf";
+  html_body: string | null;
+  pdf_url: string | null;
 }
 
 export async function GET() {
@@ -16,7 +18,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("tenant_asset_templates")
-    .select("asset_type_id, template_id, html_body")
+    .select("asset_type_id, template_id, type, html_body, pdf_url")
     .eq("tenant_id", user.id);
 
   if (error) {

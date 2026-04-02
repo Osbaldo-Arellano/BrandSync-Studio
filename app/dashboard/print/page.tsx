@@ -12,7 +12,7 @@ import {
 } from "@/components/dashboard";
 import type { AssetTemplateRow } from "@/app/api/asset-templates/route";
 
-type TemplateMap = Record<string, Record<string, string>>;
+type TemplateMap = Record<string, Record<string, AssetTemplateRow>>;
 
 export default function PrintPage() {
   const [brand, setBrand] = useState<BrandState>(defaultBrand);
@@ -23,6 +23,8 @@ export default function PrintPage() {
   const [editorAsset, setEditorAsset] = useState<AssetTypeConfig>(ASSET_TYPES[0]);
   const [editorTemplate, setEditorTemplate] = useState<AssetTemplate>(ASSET_TYPES[0].templates[0]);
   const [editorTemplateBody, setEditorTemplateBody] = useState("");
+  const [editorType, setEditorType] = useState<"template" | "pdf">("template");
+  const [editorPdfUrl, setEditorPdfUrl] = useState<string | null>(null);
 
   const availableAssets: AssetTypeConfig[] = ASSET_TYPES
     .filter((a) => templateMap[a.id])
@@ -93,17 +95,19 @@ export default function PrintPage() {
       const map: TemplateMap = {};
       for (const row of (templateRows as AssetTemplateRow[])) {
         if (!map[row.asset_type_id]) map[row.asset_type_id] = {};
-        map[row.asset_type_id][row.template_id] = row.html_body;
+        map[row.asset_type_id][row.template_id] = row;
       }
       setTemplateMap(map);
     }).finally(() => setLoading(false));
   }, []);
 
   const openEditor = (asset: AssetTypeConfig, template: AssetTemplate) => {
-    const body = templateMap[asset.id]?.[template.id] ?? "";
+    const row = templateMap[asset.id]?.[template.id];
     setEditorAsset(asset);
     setEditorTemplate(template);
-    setEditorTemplateBody(body);
+    setEditorTemplateBody(row?.html_body ?? "");
+    setEditorType(row?.type ?? "template");
+    setEditorPdfUrl(row?.pdf_url ?? null);
     setEditorOpen(true);
   };
 
@@ -154,7 +158,9 @@ export default function PrintPage() {
         onClose={() => setEditorOpen(false)}
         asset={editorAsset}
         template={editorTemplate}
+        type={editorType}
         templateBody={editorTemplateBody}
+        pdfUrl={editorPdfUrl}
         brand={brand}
       />
     </>

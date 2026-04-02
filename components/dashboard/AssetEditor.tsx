@@ -53,11 +53,13 @@ interface AssetEditorProps {
   onClose: () => void;
   asset: AssetTypeConfig;
   template: AssetTemplate;
+  type: "template" | "pdf";
   templateBody: string;
+  pdfUrl: string | null;
   brand: BrandState;
 }
 
-export function AssetEditor({ open, onClose, asset, template, templateBody, brand }: AssetEditorProps) {
+export function AssetEditor({ open, onClose, asset, template, type, templateBody, pdfUrl, brand }: AssetEditorProps) {
   const [generating, setGenerating] = useState(false);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [zoom, setZoom] = useState(1);
@@ -107,14 +109,14 @@ export function AssetEditor({ open, onClose, asset, template, templateBody, bran
     setGenerating(true);
     setOrderSent(false);
     try {
+      const body = type === "pdf"
+        ? { pdfUrl, filename: `${asset.id}-${template.id}`, quantity }
+        : { html: renderedHTML, filename: `${asset.id}-${template.id}`, quantity };
+
       const res = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          html: renderedHTML,
-          filename: `${asset.id}-${template.id}`,
-          quantity,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) throw new Error(await res.text().catch(() => "Order failed"));
@@ -278,18 +280,26 @@ export function AssetEditor({ open, onClose, asset, template, templateBody, bran
                   className="shrink-0 rounded border border-gray-300 shadow-md overflow-hidden"
                   style={{ width: displayW, height: displayH }}
                 >
-                  <iframe
-                    srcDoc={renderedHTML}
-                    title="Preview"
-                    className="pointer-events-none block border-0"
-                    scrolling="no"
-                    style={{
-                      width: asset.previewWidth,
-                      height: asset.previewHeight,
-                      transform: `scale(${zoom})`,
-                      transformOrigin: "top left",
-                    }}
-                  />
+                  {type === "pdf" ? (
+                    <iframe
+                      src={pdfUrl ?? ""}
+                      title="Preview"
+                      className="block border-0 w-full h-full"
+                    />
+                  ) : (
+                    <iframe
+                      srcDoc={renderedHTML}
+                      title="Preview"
+                      className="pointer-events-none block border-0"
+                      scrolling="no"
+                      style={{
+                        width: asset.previewWidth,
+                        height: asset.previewHeight,
+                        transform: `scale(${zoom})`,
+                        transformOrigin: "top left",
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </div>

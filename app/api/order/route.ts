@@ -19,13 +19,42 @@ export async function POST(req: NextRequest) {
     return new Response("Order service not configured", { status: 503 });
   }
 
-  const { html, filename, quantity } = await req.json();
+  const { html, pdfUrl, filename, quantity } = await req.json();
 
-  if (!html || typeof html !== "string") {
-    return new Response("Missing html", { status: 400 });
+  if (!html && !pdfUrl) {
+    return new Response("Missing html or pdfUrl", { status: 400 });
   }
 
-  // Generate PDF
+  const safeName = filename || "asset";
+  const userName = user.email || "A customer";
+
+  // For static PDFs, fetch the file directly and skip Puppeteer
+  if (pdfUrl && typeof pdfUrl === "string") {
+    const pdfRes = await fetch(pdfUrl);
+    if (!pdfRes.ok) {
+      return new Response("Failed to fetch PDF", { status: 502 });
+    }
+    const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: ORDER_EMAIL,
+      subject: `New Order: ${safeName} (x${quantity || "?"})`,
+      text: `New order from ${userName}.\n\nAsset: ${safeName}\nQuantity: ${quantity || "Not specified"}\n\nThe PDF is attached.`,
+      attachments: [{ filename: `${safeName}.pdf`, content: pdfBuffer, contentType: "application/pdf" }],
+    });
+
+    return Response.json({ ok: true });
+  }
+
+  // Generate PDF from HTML via Puppeteer
   const isVercel = Boolean(process.env.VERCEL);
   type PuppeteerModule = typeof import("puppeteer");
   const puppeteer = (isVercel
@@ -83,9 +112,6 @@ export async function POST(req: NextRequest) {
       pass: process.env.SMTP_PASS,
     },
   });
-
-  const safeName = filename || "asset";
-  const userName = user.email || "A customer";
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,

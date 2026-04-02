@@ -1,11 +1,12 @@
-import { ASSET_TYPES } from "@/types/assets";
+import type { AssetTypeConfig } from "@/types/assets";
 
 interface AssetSelectorProps {
+  assetTypes: AssetTypeConfig[];
   selected: string;
   onChange: (id: string) => void;
 }
 
-export function AssetSelector({ selected, onChange }: AssetSelectorProps) {
+export function AssetSelector({ assetTypes, selected, onChange }: AssetSelectorProps) {
   return (
     <div className="space-y-1">
       <label
@@ -20,12 +21,11 @@ export function AssetSelector({ selected, onChange }: AssetSelectorProps) {
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
       >
-        {/* {ASSET_TYPES.map((a) => (
+        {assetTypes.map((a) => (
           <option key={a.id} value={a.id}>
             {a.label}
           </option>
-        ))} */}
-        <option value="eddm-mailer">EDDM Mailer</option>
+        ))}
       </select>
     </div>
   );

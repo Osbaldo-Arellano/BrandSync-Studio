@@ -21,3 +21,4 @@ comment on table public.tenant_asset_templates is
    html_body uses {{placeholder}} tokens: {{logo}}, {{icon}}, {{tagline}}, {{website}}, {{qr_code}},
    {{name}}, {{title}}, {{email}}, {{phone}}, {{fromName}}, {{fromAddress}}, {{toName}}, {{toAddress}}, {{googleUrl}}.
    Presence of a row = that asset type/template is enabled for that tenant.';
+
